@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Treinos Personalizados</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <style>
+        /* Custom styles to override or extend Tailwind if needed */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2c3e50; /* Dark blue background */
+            color: #ecf0f1; /* Light gray text */
+        }
+        .container {
+            background-color: #34495e; /* Slightly lighter blue for containers */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        h1, h2 {
+            color: #e67e22; /* Orange for headings */
+        }
+        .input-group input[type="text"],
+        .input-group input[type="email"],
+        .input-group input[type="password"],
+        .input-group input[type="number"],
+        .input-group select,
+        .input-group textarea {
+            background-color: #4a6176; /* Darker input background */
+            color: #ecf0f1;
+        }
+        button {
+            background-color: #e67e22; /* Orange button */
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #d35400; /* Darker orange on hover */
+        }
+        button:disabled {
+            background-color: #95a5a6; /* Gray when disabled */
+            cursor: not-allowed;
+        }
+        #customDaysContainer {
+            border: 1px solid #7f8c8d;
+            background-color: #4a6176;
+        }
+        .custom-day-entry {
+            background-color: #3f556e;
+        }
+        .custom-day-entry .remove-day-btn {
+            background-color: #c0392b; /* Red for remove button */
+        }
+        .custom-day-entry .remove-day-btn:hover {
+            background-color: #a5281b;
+        }
+        #resultado {
+            background-color: #34495e;
+            line-height: 1.6;
+        }
+        #resultado h3 {
+            color: #e67e22;
+        }
+        #resultado ul li {
+            background-color: #4a6176;
+        }
+        #resultado ul li strong {
+            color: #f1c40f; /* Yellow for exercise names */
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #7f8c8d;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #34495e;
+            border: 1px solid #7f8c8d;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #ecf0f1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .edit-buttons button {
+            background-color: #2980b9; /* Blue for edit */
+        }
+
+        .edit-buttons button.remove {
+            background-color: #c0392b; /* Red for remove */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-5">
+    <div id="appContent" class="container p-8 rounded-xl max-w-3xl w-full mb-5">
+        <h1 class="text-4xl font-bold mb-8">Gerador de Treinos Personalizados</h1>
+
+        <div class="mb-4">
+            <label for="nomeAluno" class="block text-sm font-bold mb-2">Nome do Aluno:</label>
+            <input type="text" id="nomeAluno" placeholder="Digite o nome do aluno" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="idade" class="block text-sm font-bold mb-2">Idade:</label>
+                <input type="number" id="idade" placeholder="Idade em anos" required min="10" max="100" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div>
+                <label for="peso" class="block text-sm font-bold mb-2">Peso (kg):</label>
+                <input type="number" id="peso" placeholder="Peso em kg" required step="0.1" min="20" max="300" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div>
+                <label for="altura" class="block text-sm font-bold mb-2">Altura (cm):</label>
+                <input type="number" id="altura" placeholder="Altura em cm" required min="100" max="250" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div>
+                <label for="sexo" class="block text-sm font-bold mb-2">Sexo:</label>
+                <select id="sexo" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
+                    <option value="">Selecione</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                </select>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="nivel" class="block text-sm font-bold mb-2">Nível de Treino:</label>
+                <select id="nivel" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
+                    <option value="">Selecione</option>
+                    <option value="Iniciante">Iniciante</option>
+                    <option value="Intermediario">Intermediário</option>
+                    <option value="Avancado">Avançado</option>
+                </select>
+            </div>
+            <div>
+                <label for="objetivo" class="block text-sm font-bold mb-2">Objetivo:</label>
+                <select id="objetivo" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
+                    <option value="">Selecione</option>
+                    <option value="Hipertrofia">Hipertrofia</option>
+                    <option value="Emagrecimento">Emagrecimento</option>
+                    <option value="Resistencia">Resistência</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-bold mb-2">Equipamentos Disponíveis:</label>
+            <div class="flex flex-wrap gap-4" id="equipamentos">
+                <div class="flex items-center"><input type="checkbox" id="equipamentoHalteres" value="Halteres" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoHalteres" class="ml-2 text-base">Halteres</label></div>
+                <div class="flex items-center"><input type="checkbox" id="equipamentoBarras" value="Barras" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoBarras" class="ml-2 text-base">Barras</label></div>
+                <div class="flex items-center"><input type="checkbox" id="equipamentoMaquinas" value="Máquinas" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoMaquinas" class="ml-2 text-base">Máquinas</label></div>
+                <div class="flex items-center"><input type="checkbox" id="equipamentoCabos" value="Cabos" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoCabos" class="ml-2 text-base">Cabos</label></div>
+                <div class="flex items-center"><input type="checkbox" id="equipamentoPesoCorporal" value="Peso Corporal" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoPesoCorporal" class="ml-2 text-base">Peso Corporal</label></div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-bold mb-2">Técnicas Avançadas (selecione as que deseja incluir, se for Avançado):</label>
+            <div class="flex flex-wrap gap-4" id="tecnicas">
+                <div class="flex items-center"><input type="checkbox" id="tecnicaDropSet" value="Drop Set" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaDropSet" class="ml-2 text-base">Drop Set</label></div>
+                <div class="flex items-center"><input type="checkbox" id="tecnicaBiSet" value="Bi-set" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaBiSet" class="ml-2 text-base">Bi-set</label></div>
+                <div class="flex items-center"><input type="checkbox" id="tecnicaSuperset" value="Superset" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaSuperset" class="ml-2 text-base">Superset</label></div>
+                <div class="flex items-center"><input type="checkbox" id="tecnicaFST7" value="FST-7" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaFST7" class="ml-2 text-base">FST-7</label></div>
+                <div class="flex items-center"><input type="checkbox" id="tecnicaRestPause" value="Rest-Pause" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaRestPause" class="ml-2 text-base">Rest-Pause</label></div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="observacoes" class="block text-sm font-bold mb-2">Observações Adicionais (opcional):</label>
+            <textarea id="observacoes" rows="3" placeholder="Restrições, focos específicos, etc." class="p-3 border border-gray-600 rounded-lg w-full text-base"></textarea>
+        </div>
+
+        <h2 class="text-2xl font-bold mt-8 mb-4">Divisão Semanal do Treino</h2>
+        <div id="customDaysContainer" class="border border-gray-600 p-4 rounded-lg mb-4">
+            </div>
+        <button type="button" onclick="addCustomDay()" class="py-2 px-4 rounded-lg text-white font-bold text-base">Adicionar Dia de Treino</button>
+
+        <div class="flex flex-col md:flex-row justify-center gap-4 mt-8">
+            <button onclick="gerarTreino()" class="py-3 px-6 rounded-lg text-white font-bold text-lg">Gerar Treino</button>
+            <button onclick="exportarTreinoParaPDF()" class="py-3 px-6 rounded-lg text-white font-bold text-lg">Exportar para PDF</button>
+        </div>
+
+        <div id="resultado" class="p-6 rounded-xl mt-8">
+            <p class='text-gray-400'>Preencha os dados acima e clique em 'Gerar Treino'.</p>
+        </div>
+    </div>
+
+    <div id="genericModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
+        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
+            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal()">&times;</span>
+            <p id="modalMessage" class="text-lg mb-6"></p>
+            <button onclick="closeModal()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">OK</button>
+        </div>
+    </div>
+
+    <div id="editExerciseModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
+        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
+            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal('editExerciseModal')">&times;</span>
+            <h3 class="text-2xl font-bold mb-6">Editar Exercício</h3>
+            <div class="mb-4">
+                <label for="editExName" class="block text-sm font-bold mb-2">Nome do Exercício:</label>
+                <input type="text" id="editExName" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div class="mb-4">
+                <label for="editExSetsReps" class="block text-sm font-bold mb-2">Séries/Repetições:</label>
+                <input type="text" id="editExSetsReps" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div class="mb-4">
+                <label for="editExRest" class="block text-sm font-bold mb-2">Descanso (segundos):</label>
+                <input type="number" id="editExRest" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <div class="mb-6">
+                <label for="editExTechnique" class="block text-sm font-bold mb-2">Técnica:</label>
+                <input type="text" id="editExTechnique" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            </div>
+            <button onclick="saveEditedExercise()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <div id="addExerciseToDayModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
+        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
+            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal('addExerciseToDayModal')">&times;</span>
+            <h3 class="text-2xl font-bold mb-6">Adicionar Exercício</h3>
+            <div class="mb-4">
+                <label for="addExMuscleGroup" class="block text-sm font-bold mb-2">Grupo Muscular (para filtrar):</label>
+                <select id="addExMuscleGroup" onchange="updateAddExerciseGroupOptions()" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+                    <option value="">Selecione um Grupo</option>
+                    </select>
+            </div>
+            <div class="mb-6">
+                <label for="addExSelect" class="block text-sm font-bold mb-2">Selecione o Exercício:</label>
+                <select id="addExSelect" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+                    <option value="">Selecione um Exercício</option>
+                    </select>
+            </div>
+            <button onclick="addNewExerciseToDay()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">Adicionar ao Dia</button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config (REPLACE WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        // NO LONGER NEEDED: const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // NO LONGER NEEDED: let currentUser = null;
+        let generatedTrainingPlan = []; // Store the full generated plan for potential editing
+        let treinoGeradoConteudoParaPDF = {}; // Stores a structured object for PDF export
+        let exerciciosDB = []; // This will store exercises loaded from Firestore
+
+        // ** REPLACE THIS WITH YOUR LOGO'S BASE64 STRING **
+        const YOUR_LOGO_BASE64_STRING_HERE = ''; // Example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
+        if (!YOUR_LOGO_BASE64_STRING_HERE) {
+            console.warn("ATENÇÃO: A string Base64 do seu logo para o PDF está vazia. O PDF será gerado sem logo.");
+        }
+
+
+        const aquecimentos = {
+            "Geral": [
+                "5-10 minutos de cardio leve (esteira, bicicleta, elíptico)",
+                "Mobilidade articular (círculos com braços, rotação de tronco, flexão de quadril)",
+                "Alongamento dinâmico (leg swings, arm circles)"
+            ],
+            "Peito": [
+                "Rotação de ombros",
+                "Flexões de braço leves (em joelhos se necessário)",
+                "Alongamento de peitoral na parede"
+            ],
+            "Costas": [
+                "Remada baixa com elástico ou peso leve",
+                "Alongamento de grande dorsal",
+                "Ativação escapular"
+            ],
+            "Pernas": [
+                "Agachamento sem peso",
+                "Elevação de joelhos",
+                "Alongamento de isquiotibiais e quadríceps"
+            ],
+            "Glúteos": [
+                "Ponte de glúteos",
+                "Caminhada lateral com faixa elástica",
+                "Alongamento de flexores do quadril"
+            ],
+            "Ombros": [
+                "Círculos com braços pequenos e grandes",
+                "Rotação interna/externa com elástico",
+                "Elevação lateral com peso muito leve"
+            ],
+            "Bíceps": [
+                "Rotação de punhos",
+                "Rosca direta com peso muito leve",
+                "Alongamento suave de bíceps"
+            ],
+            "Tríceps": [
+                "Extensão de tríceps com peso muito leve",
+                "Alongamento de tríceps",
+                "Rotação de ombros"
+            ],
+            "Abdômen": [
+                "Rotação de tronco",
+                "Prancha leve (20-30 segundos)",
+                "Alongamento de cobra"
+            ],
+            "Panturrilhas": [
+                "Elevação de panturrilhas sem peso",
+                "Alongamento de panturrilhas na parede"
+            ],
+            "Lombar": [
+                "Gato-Camelo",
+                "Rotação lombar deitado",
+                "Extensão lombar suave"
+            ]
+        };
+
+        const cardioExercises = {
+            "Iniciante": [
+                { nome: "Caminhada Rápida (30 min)", duracao: 30 },
+                { nome: "Bicicleta Ergométrica (25 min, ritmo moderado)", duracao: 25 },
+                { nome: "Elíptico (25 min, ritmo moderado)", duracao: 25 }
+            ],
+            "Intermediario": [
+                { nome: "Corrida Moderada (20-30 min)", duracao: 20 },
+                { nome: "Natação (25-35 min)", duracao: 25 },
+                { nome: "Escada (20 min, ritmo constante)", duracao: 20 },
+                { nome: "HIIT na esteira (15-20 min, 1:2 trabalho/descanso)", duracao: 15 }
+            ],
+            "Avancado": [
+                { nome: "Corrida Intensa (30-45 min)", duracao: 30 },
+                { nome: "HIIT (15-20 min, 1:1 ou 2:1 trabalho/descanso)", duracao: 15 },
+                { nome: "Pular Corda (20-30 min, variações)", duracao: 20 },
+                { nome: "Remo (25-35 min, alta intensidade)", duracao: 25 }
+            ]
+        };
+
+        const tecnicasExplanations = {
+            "Drop Set": "Após atingir a falha em uma série, diminua o peso em 20-30% e continue até a falha novamente. Repita por 2-3 'quedas' de peso.",
+            "Bi-set": "Realize dois exercícios diferentes para o mesmo grupo muscular (ou grupos musculares sinergistas) um após o outro, sem descanso entre eles. Descanse após ambos.",
+            "Superset": "Realize dois exercícios para grupos musculares ANTAGONISTAS (ex: bíceps e tríceps, peito e costas) um após o outro, sem descanso. Descanse após ambos.",
+            "FST-7": "No final do treino de um grupo muscular, faça 7 séries com 30-45 segundos de descanso entre cada uma, usando um peso moderado para atingir a falha ou próximo dela em cada série.",
+            "Rest-Pause": "Faça uma série até a falha ou perto dela, descanse por 10-20 segundos, e então faça mais algumas repetições com o mesmo peso até a falha novamente. Repita 1-2 vezes."
+        };
+
+        function getSeriesRepeticoes(objetivo, nivel) {
+            let series, reps;
+
+            switch (objetivo) {
+                case "Hipertrofia":
+                    series = Math.floor(Math.random() * 2) + 3; // 3 ou 4 séries
+                    if (nivel === "Iniciante") reps = "10-15";
+                    else if (nivel === "Intermediario") reps = "8-12";
+                    else reps = "6-10";
+                    break;
+                case "Emagrecimento":
+                    series = Math.floor(Math.random() * 2) + 3; // 3 ou 4 séries
+                    if (nivel === "Iniciante") reps = "12-18";
+                    else if (nivel === "Intermediario") reps = "15-20";
+                    else reps = "15-25";
+                    break;
+                case "Resistencia":
+                    series = Math.floor(Math.random() * 2) + 2; // 2 ou 3 séries
+                    if (nivel === "Iniciante") reps = "15-20";
+                    else if (nivel === "Intermediario") reps = "20-30";
+                    else reps = "25-40";
+                    break;
+                default:
+                    series = 3;
+                    reps = "8-12";
+            }
+            return `${series}x${reps}`;
+        }
+
+        function getDescanso(objetivo) {
+            switch (objetivo) {
+                case "Hipertrofia": return "60-90 segundos";
+                case "Emagrecimento": return "30-60 segundos";
+                case "Resistencia": return "30-45 segundos";
+                default: return "60 segundos";
+            }
+        }
+
+        // --- Firebase Firestore Loading ---
+        async function loadExerciciosFromFirestore() {
+            try {
+                const snapshot = await db.collection('exercicios').get();
+                exerciciosDB = snapshot.docs.map(doc => doc.data());
+                console.log(`Carregados ${exerciciosDB.length} exercícios do Firestore.`);
+                // You might want to sort exerciciosDB here if needed
+                if (exerciciosDB.length === 0) {
+                     showModal("Atenção: NENHUM exercício foi encontrado no seu Firestore. Por favor, adicione exercícios à coleção 'exercicios' para o app funcionar corretamente.", 'genericModal');
+                }
+            } catch (error) {
+                console.error("Erro ao carregar exercícios do Firestore:", error);
+                showModal("Erro ao carregar a lista de exercícios do Firestore. Verifique sua conexão e as regras de segurança do Firestore. (A coleção 'exercicios' precisa ser legível para todos).", 'genericModal');
+                throw error; // Re-throw to be caught by the caller
+            }
+        }
+
+        // Initial load for exercises and custom day
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExerciciosFromFirestore().then(() => {
+                // Initial setup for the app, now that exercises are loaded
+                addCustomDay(); // Add one default custom day
+            }).catch(error => {
+                // Error already handled by showModal in loadExerciciosFromFirestore
+            });
+        });
+
+        // NO LONGER NEEDED: saveUserData() - no user persistence without login
+        // NO LONGER NEEDED: loadUserData() - no user persistence without login
+
+        function displayGeneratedTrainingPlan() {
+            let treinoOutputHTML = '';
+            // Reset treinoGeradoConteudoParaPDF to ensure it reflects current display
+            treinoGeradoConteudoParaPDF = {
+                aluno: document.getElementById('nomeAluno').value,
+                idade: document.getElementById('idade').value,
+                peso: document.getElementById('peso').value,
+                altura: document.getElementById('altura').value,
+                sexo: document.getElementById('sexo').value,
+                nivel: document.getElementById('nivel').value,
+                objetivo: document.getElementById('objetivo').value,
+                tecnicas: Array.from(document.querySelectorAll('#tecnicas input[type="checkbox"]:checked')).map(cb => cb.value),
+                observacoes: document.getElementById('observacoes').value,
+                dias: []
+            };
+
+            if (generatedTrainingPlan.length === 0) {
+                document.getElementById('resultado').innerHTML = "<p class='text-gray-400'>Nenhum treino gerado ainda. Preencha os dados e clique em 'Gerar Treino'.</p>";
+                return;
+            }
+
+            generatedTrainingPlan.forEach(day => {
+                treinoOutputHTML += `<h3 class="text-xl font-bold mb-3 mt-6 text-orange-400">Dia ${day.dayLabel}: Treino de ${day.muscleGroups.join(' + ')}</h3>\n`;
+                
+                const selectedWarmup = getWarmup(day.muscleGroups);
+                treinoOutputHTML += `<p class="font-semibold mt-4">Aquecimento Geral (5-10 min):</p>\n<ul class="list-disc list-inside ml-4 mb-4">`;
+                selectedWarmup.forEach(item => {
+                    treinoOutputHTML += `<li>${item}</li>`;
+                });
+                treinoOutputHTML += `</ul>`;
+
+                const exercisesForPdfTable = [];
+
+                if (day.exercises.length === 0) {
+                    treinoOutputHTML += `<p class="text-red-300">Não foi possível gerar exercícios para o Dia ${day.dayLabel}. Por favor, verifique a sua seleção de grupos musculares, opções de equipamentos e nível de treino para garantir que há exercícios disponíveis.</p>\n`;
+                    exercisesForPdfTable.push({
+                        nome: `Não foi possível gerar exercícios para este dia.`,
+                        equipamento: "",
+                        execucao: "Verifique a configuração.",
+                        descanso: "",
+                        tecnica: ""
+                    });
+                } else {
+                    let currentDayHtmlExercises = [];
+                    day.exercises.forEach((exercicio, index) => {
+                        const execucaoText = `${exercicio.series}x${exercicio.reps}`;
+                        const descansoText = `${exercicio.descanso} segundos`;
+                        const tecnicaText = exercicio.tecnica ? ` | Técnica: ${exercicio.tecnica}` : '';
+                        
+                        currentDayHtmlExercises.push(`
+                            <li class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-600 p-3 rounded-md mb-2">
+                                <div>
+                                    <strong class="text-yellow-300">${exercicio.nome}</strong> <span class="text-sm text-gray-300">(${exercicio.equipamento})</span> - ${execucaoText} ${tecnicaText}
+                                </div>
+                                <div class="flex gap-2 mt-2 sm:mt-0">
+                                    <button onclick="openEditExerciseModal('${day.dayLabel}', ${index})" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded">Editar</button>
+                                    <button class="remove bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2 rounded" onclick="removeExerciseFromGeneratedPlan('${day.dayLabel}', ${index})">Remover</button>
+                                </div>
+                            </li>
+                        `);
+
+                        exercisesForPdfTable.push({
+                            nome: exercicio.nome,
+                            equipamento: exercicio.equipamento,
+                            execucao: execucaoText,
+                            descanso: descansoText,
+                            tecnica: exercicio.tecnica || '-'
+                        });
+                    });
+                    treinoOutputHTML += `<p class="font-semibold mt-4">💪 Treino de Força:</p><ul class="mb-4">${currentDayHtmlExercises.join('\n')}</ul>`;
+                }
+                
+                treinoOutputHTML += `<button onclick="openAddExerciseToDayModal('${day.dayLabel}')" class="py-2 px-4 rounded-lg text-white font-bold text-base bg-blue-600 hover:bg-blue-700 mt-2">Adicionar Exercício Manualmente</button>`;
+
+
+                const currentDayPdfData = {
+                    dayName: day.dayLabel,
+                    groups: day.muscleGroups,
+                    warmup: selectedWarmup,
+                    exercises: exercisesForPdfTable,
+                    cardio: day.cardio,
+                };
+                treinoGeradoConteudoParaPDF.dias.push(currentDayPdfData);
+
+
+                if (day.cardio) {
+                    treinoOutputHTML += `<p class="font-semibold mt-4">🏃 Cardio: <span class="font-normal">${day.cardio}</span></p>\n`;
+                } else {
+                     treinoOutputHTML += `<p class="text-gray-400 font-semibold mt-4">🏃 Cardio: <span class="font-normal">Nenhum exercício de cardio gerado para este dia.</span></p>\n`;
+                }
+
+                treinoOutputHTML += `\n<hr class="my-6 border-gray-500">\n`;
+            });
+            document.getElementById('resultado').innerHTML = treinoOutputHTML;
+        }
+
+        // --- Modal Functions ---
+        function showModal(message, modalId = 'genericModal') {
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId = 'genericModal') {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        let currentEditDayLabel = '';
+        let currentEditExerciseIndex = -1;
+
+        function openEditExerciseModal(dayLabel, exerciseIndex) {
+            currentEditDayLabel = dayLabel;
+            currentEditExerciseIndex = exerciseIndex;
+
+            const day = generatedTrainingPlan.find(d => d.dayLabel === dayLabel);
+            if (day) {
+                const exercise = day.exercises[exerciseIndex];
+                if (exercise) {
+                    document.getElementById('editExName').value = exercise.nome;
+                    document.getElementById('editExSetsReps').value = `${exercise.series}x${exercise.reps}`;
+                    document.getElementById('editExRest').value = exercise.descanso;
+                    document.getElementById('editExTechnique').value = exercise.tecnica || '';
+                    showModal('', 'editExerciseModal');
+                } else {
+                    showModal("Erro: Exercício não encontrado para edição.", 'genericModal');
+                }
+            } else {
+                showModal("Erro: Dia de treino não encontrado para edição.", 'genericModal');
+            }
+        }
+
+        function saveEditedExercise() {
+            if (currentEditDayLabel && currentEditExerciseIndex !== -1) {
+                const day = generatedTrainingPlan.find(d => d.dayLabel === currentEditDayLabel);
+                if (day) {
+                    const exercise = day.exercises[currentEditExerciseIndex];
+                    if (exercise) {
+                        const newName = document.getElementById('editExName').value;
+                        const setsReps = document.getElementById('editExSetsReps').value.split('x');
+                        const newRest = parseInt(document.getElementById('editExRest').value);
+                        const newTechnique = document.getElementById('editExTechnique').value;
+
+                        if (!newName || setsReps.length !== 2 || isNaN(parseInt(setsReps[0])) || isNaN(newRest)) {
+                            showModal("Por favor, preencha todos os campos corretamente (Séries/Repetições como 'NxM', Descanso como número).");
+                            return;
+                        }
+
+                        exercise.nome = newName;
+                        exercise.series = parseInt(setsReps[0]);
+                        exercise.reps = setsReps[1].trim();
+                        exercise.descanso = newRest;
+                        exercise.tecnica = newTechnique;
+                        
+                        displayGeneratedTrainingPlan();
+                        // NO LONGER NEEDED: saveUserData();
+                        showModal("Exercício atualizado com sucesso!", 'genericModal');
+                        closeModal('editExerciseModal');
+                    }
+                }
+            }
+        }
+
+        function removeExerciseFromGeneratedPlan(dayLabel, exerciseIndex) {
+            const day = generatedTrainingPlan.find(d => d.dayLabel === dayLabel);
+            if (day) {
+                const removedExercise = day.exercises.splice(exerciseIndex, 1)[0];
+
+                if (removedExercise.tecnica === 'Bi-set' || removedExercise.tecnica === 'Superset') {
+                    let pairedIndex = -1;
+                    if (removedExercise.nome.includes('(Conjugado com')) {
+                        const originalName = removedExercise.nome.match(/\(Conjugado com (.*?)\)/);
+                        if (originalName && originalName[1]) {
+                            pairedIndex = day.exercises.findIndex(ex => ex.nome === originalName[1] && (ex.tecnica === 'Bi-set' || ex.tecnica === 'Superset'));
+                        }
+                    } else if (removedExercise.pairedExercise) {
+                        const pairedName = removedExercise.pairedExercise.nome;
+                        pairedIndex = day.exercises.findIndex(ex => ex.nome.includes(`(Conjugado com ${removedExercise.nome})`));
+                    }
+                    
+                    if (pairedIndex !== -1) {
+                        day.exercises.splice(pairedIndex, 1);
+                        showModal("Exercício e seu par removidos com sucesso!", 'genericModal');
+                    } else {
+                        showModal("Exercício removido com sucesso!", 'genericModal');
+                    }
+                } else {
+                    showModal("Exercício removido com sucesso!", 'genericModal');
+                }
+                
+                displayGeneratedTrainingPlan();
+                // NO LONGER NEEDED: saveUserData();
+            }
+        }
+        
+        let currentAddExerciseDayLabel = '';
+        function openAddExerciseToDayModal(dayLabel) {
+            currentAddExerciseDayLabel = dayLabel;
+            populateAddExSelect();
+            showModal('', 'addExerciseToDayModal');
+        }
+
+        function populateAddExSelect() {
+            const addExMuscleGroupSelect = document.getElementById('addExMuscleGroup');
+            addExMuscleGroupSelect.innerHTML = '<option value="">Selecione um Grupo</option>';
+            // Use exerciciosDB for unique groups
+            const uniqueGroups = [...new Set(exerciciosDB.map(ex => ex.grupoPrimario))].sort();
+            uniqueGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group;
+                option.innerText = group;
+                addExMuscleGroupSelect.appendChild(option);
+            });
+            updateAddExerciseGroupOptions();
+        }
+
+        function updateAddExerciseGroupOptions() {
+            const selectedGroup = document.getElementById('addExMuscleGroup').value;
+            const addExSelect = document.getElementById('addExSelect');
+            addExSelect.innerHTML = '<option value="">Selecione um Exercício</option>';
+
+            const equipamentosSelecionados = Array.from(document.querySelectorAll('#equipamentos input[type="checkbox"]:checked'))
+                                                .map(cb => cb.value);
+
+            // Filter by selected group and currently available equipment from exerciciosDB
+            const filteredExercises = exerciciosDB.filter(ex =>
+                (selectedGroup === "" || ex.grupoPrimario === selectedGroup) &&
+                equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq) // Handles both array and string
+            );
+
+            filteredExercises.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            filteredExercises.forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex.nome;
+                option.innerText = `${ex.nome} (${Array.isArray(ex.equipamento) ? ex.equipamento.join(', ') : ex.equipamento})`;
+                addExSelect.appendChild(option);
+            });
+        }
+
+        function addNewExerciseToDay() {
+            const selectedExerciseName = document.getElementById('addExSelect').value;
+            if (!selectedExerciseName) {
+                showModal("Por favor, selecione um exercício para adicionar.");
+                return;
+            }
+
+            const day = generatedTrainingPlan.find(d => d.dayLabel === currentAddExerciseDayLabel);
+            if (!day) {
+                showModal("Erro: Dia de treino não encontrado.");
+                return;
+            }
+
+            // Find the exercise in the loaded database
+            const exerciseToAdd = exerciciosDB.find(ex => ex.nome === selectedExerciseName);
+            if (!exerciseToAdd) {
+                showModal("Erro: Exercício selecionado não encontrado na base de dados (Firestore).");
+                return;
+            }
+
+            const isAlreadyAdded = day.exercises.some(ex => ex.nome.replace(/\s\(Conjugado com.*?\)/, '') === exerciseToAdd.nome);
+            if (isAlreadyAdded) {
+                showModal("Este exercício já foi adicionado a este dia.");
+                return;
+            }
+
+            const nivel = document.getElementById('nivel').value;
+            const objetivo = document.getElementById('objetivo').value;
+
+            const newExerciseEntry = {
+                nome: exerciseToAdd.nome,
+                // Ensure equipment is stored as a string for display consistency
+                equipamento: Array.isArray(exerciseToAdd.equipamento) ? exerciseToAdd.equipamento.join(', ') : exerciseToAdd.equipamento,
+                series: parseInt(getSeriesRepeticoes(objetivo, nivel).split('x')[0]),
+                reps: getSeriesRepeticoes(objetivo, nivel).split('x')[1],
+                descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
+                tecnica: '',
+                pairedExercise: null
+            };
+
+            day.exercises.push(newExerciseEntry);
+            displayGeneratedTrainingPlan();
+            // NO LONGER NEEDED: saveUserData();
+            showModal("Exercício adicionado com sucesso!", 'genericModal');
+            closeModal('addExerciseToDayModal');
+        }
+
+
+        // --- Custom Day Management ---
+        let dayCounter = 0;
+        const allMuscleGroups = ["Peito", "Costas", "Pernas", "Glúteos", "Ombros", "Bíceps", "Tríceps", "Abdômen", "Panturrilhas", "Antebraço", "Trapézio", "Lombar", "Posterior Coxa", "Quadríceps", "Adutores", "Core"];
+
+        function getDayLetter(num) {
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+            return letters[num % letters.length];
+        }
+
+        function addCustomDay(dayLabelFromLoad = null, selectedGroupsFromLoad = []) {
+            const container = document.getElementById('customDaysContainer');
+            const dayIndex = dayCounter++;
+
+            const diaLetra = dayLabelFromLoad || getDayLetter(dayIndex);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'custom-day-entry bg-gray-700 p-4 rounded-lg mb-3';
+            dayDiv.setAttribute('data-day-label', diaLetra); 
+
+            let checkboxesHtml = allMuscleGroups.map(group => `
+                <div class="flex items-center">
+                    <input type="checkbox" id="day-${diaLetra}-${group}-${dayIndex}" value="${group}" class="form-checkbox h-5 w-5 text-orange-600" ${selectedGroupsFromLoad.includes(group) ? 'checked' : ''}>
+                    <label for="day-${diaLetra}-${group}-${dayIndex}" class="ml-2 text-base">${group}</label>
+                </div>
+            `).join('');
+
+            dayDiv.innerHTML = `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                    <label class="text-lg font-bold">Dia <span class="day-label">${diaLetra}</span>: Grupos Musculares</label>
+                    <button type="button" class="remove-day-btn bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-md text-sm mt-2 sm:mt-0" onclick="removeCustomDay(this, '${diaLetra}')">Remover Dia</button>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    ${checkboxesHtml}
+                </div>
+            `;
+            container.appendChild(dayDiv);
+        }
+
+        function removeCustomDay(button, dayLabelToRemove) {
+            const dayDiv = button.closest('.custom-day-entry');
+            if (dayDiv) {
+                dayDiv.remove();
+                generatedTrainingPlan = generatedTrainingPlan.filter(day => day.dayLabel !== dayLabelToRemove);
+                displayGeneratedTrainingPlan(); 
+                // NO LONGER NEEDED: saveUserData();
+            }
+        }
+
+        function getWarmup(muscleGroups) {
+            const generalWarmup = [...aquecimentos.Geral];
+            const specificWarmup = new Set();
+
+            muscleGroups.forEach(group => {
+                if (aquecimentos[group]) {
+                    aquecimentos[group].forEach(item => specificWarmup.add(item));
+                }
+            });
+            return [...generalWarmup, ...Array.from(specificWarmup)];
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function gerarTreino() {
+            const nomeAluno = document.getElementById('nomeAluno').value;
+            const idade = document.getElementById('idade').value;
+            const peso = document.getElementById('peso').value;
+            const altura = document.getElementById('altura').value;
+            const sexo = document.getElementById('sexo').value;
+            const nivel = document.getElementById('nivel').value;
+            const objetivo = document.getElementById('objetivo').value;
+            const observacoes = document.getElementById('observacoes').value;
+
+            const equipamentosSelecionados = Array.from(document.querySelectorAll('#equipamentos input[type="checkbox"]:checked'))
+                                                .map(cb => cb.value);
+
+            const tecnicasSelecionadas = Array.from(document.querySelectorAll('#tecnicas input[type="checkbox"]:checked'))
+                                             .map(cb => cb.value);
+
+            if (!nomeAluno || !idade || !peso || !altura || !sexo || !nivel || !objetivo) {
+                showModal("Por favor, preencha todos os campos obrigatórios.");
+                return;
+            }
+            if (equipamentosSelecionados.length === 0) {
+                showModal("Por favor, selecione pelo menos um equipamento disponível.");
+                return;
+            }
+            if (exerciciosDB.length === 0) {
+                showModal("A lista de exercícios não foi carregada. Verifique sua conexão ou a configuração do Firebase Firestore e se há exercícios na sua coleção 'exercicios'.");
+                return;
+            }
+
+
+            const customDivisionsData = [];
+            let hasSelectedGroups = false;
+            document.querySelectorAll('.custom-day-entry').forEach(dayDiv => {
+                const dayLabel = dayDiv.getAttribute('data-day-label');
+                const selectedGroups = Array.from(dayDiv.querySelectorAll('.checkbox-group input[type="checkbox"]:checked'))
+                                            .map(cb => cb.value);
+                if (selectedGroups.length > 0) {
+                    hasSelectedGroups = true;
+                }
+                customDivisionsData.push({ dayLabel, selectedGroups });
+            });
+
+            if (!hasSelectedGroups) {
+                showModal("Por favor, selecione os grupos musculares para pelo menos um dia de treino.");
+                return;
+            }
+
+            generatedTrainingPlan = [];
+
+            const maxTecnicasPorDia = 2;
+
+            customDivisionsData.forEach(dia => {
+                const diaLetra = dia.dayLabel;
+                const gruposDoDia = dia.selectedGroups;
+                let tecnicasAplicadasNesteDia = 0;
+                const exerciciosJaUsadosNoDia = new Set();
+
+                const currentDayExercises = [];
+
+                if (gruposDoDia.length === 0) {
+                     generatedTrainingPlan.push({
+                        dayLabel: diaLetra,
+                        muscleGroups: gruposDoDia,
+                        exercises: [],
+                        cardio: null,
+                    });
+                    return;
+                }
+
+                gruposDoDia.forEach(grupo => {
+                    const grupoPrimario = grupo;
+                    
+                    const exerciciosDisponiveis = exerciciosDB.filter(ex =>
+                        ex.grupoPrimario === grupoPrimario &&
+                        (nivel === "Avancado" || ex.difficulty === "Iniciante" || ex.difficulty === "Intermediario") &&
+                        (nivel === "Intermediario" ? ex.difficulty !== "Avancado" : true) &&
+                        equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq) // Handles both array and string
+                    );
+
+                    let numExerciciosPorGrupo;
+                    if (nivel === "Iniciante") numExerciciosPorGrupo = 2;
+                    else if (nivel === "Intermediario") numExerciciosPorGrupo = 3;
+                    else numExerciciosPorGrupo = 3;
+
+                    let shuffledExercicios = shuffleArray([...exerciciosDisponiveis]);
+                    let exercisesAddedForGroup = 0;
+
+                    for (let i = 0; i < shuffledExercicios.length && exercisesAddedForGroup < numExerciciosPorGrupo; i++) {
+                        const exercicio = shuffledExercicios[i];
+                        if (exerciciosJaUsadosNoDia.has(exercicio.nome)) {
+                            continue;
+                        }
+                        
+                        exerciciosJaUsadosNoDia.add(exercicio.nome);
+                        exercisesAddedForGroup++;
+
+                        const execucaoText = getSeriesRepeticoes(objetivo, nivel);
+                        let tecnicaAplicada = '';
+                        let pairedExerciseObj = null;
+
+                        const applicableTechniques = tecnicasSelecionadas.filter(tech =>
+                            (nivel === "Avancado" && ["Drop Set", "Bi-set", "Superset", "FST-7", "Rest-Pause"].includes(tech)) ||
+                            (nivel === "Intermediario" && ["Bi-set", "Superset"].includes(tech) && Math.random() < 0.5)
+                        );
+
+                        let chanceTecnica;
+                        if (nivel === "Avancado") {
+                            chanceTecnica = 0.6;
+                        } else if (nivel === "Intermediario") {
+                            chanceTecnica = 0.3;
+                        } else {
+                            chanceTecnica = 0.05;
+                        }
+                        
+                        if (applicableTechniques.length > 0 && tecnicasAplicadasNesteDia < maxTecnicasPorDia) {
+                            const potentialTechniques = shuffleArray([...applicableTechniques]);
+                            for (const tech of potentialTechniques) {
+                                if (tech === 'Bi-set' || tech === 'Superset') {
+                                    const potentialPairedExercises = exerciciosDB.filter(
+                                        ex => ex.nome !== exercicio.nome && !exerciciosJaUsadosNoDia.has(ex.nome) && ex.grupoPrimario === exercicio.grupoPrimario && ex.difficulty === exercicio.difficulty && equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq)
+                                    );
+
+                                    if (potentialPairedExercises.length > 0) {
+                                        pairedExerciseObj = potentialPairedExercises[Math.floor(Math.random() * potentialPairedExercises.length)];
+                                        tecnicaAplicada = tech;
+                                        tecnicasAplicadasNesteDia++;
+                                        exerciciosJaUsadosNoDia.add(pairedExerciseObj.nome);
+                                        break;
+                                    }
+                                } else {
+                                    tecnicaAplicada = tech;
+                                    tecnicasAplicadasNesteDia++;
+                                    break;
+                                }
+                            }
+                        }
+
+                        currentDayExercises.push({
+                            nome: exercicio.nome,
+                            equipamento: Array.isArray(exercicio.equipamento) ? exercicio.equipamento.join(', ') : exercicio.equipamento,
+                            series: parseInt(execucaoText.split('x')[0]),
+                            reps: execucaoText.split('x')[1],
+                            descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
+                            tecnica: tecnicaAplicada || '',
+                            pairedExercise: pairedExerciseObj ? { nome: pairedExerciseObj.nome } : null
+                        });
+
+                        if (pairedExerciseObj) {
+                            currentDayExercises.push({
+                                nome: `${pairedExerciseObj.nome} (Conjugado com ${exercicio.nome})`,
+                                equipamento: Array.isArray(pairedExerciseObj.equipamento) ? pairedExerciseObj.equipamento.join(', ') : pairedExerciseObj.equipamento,
+                                series: parseInt(execucaoText.split('x')[0]),
+                                reps: execucaoText.split('x')[1],
+                                descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
+                                tecnica: tecnicaAplicada,
+                                pairedExercise: { nome: exercicio.nome }
+                            });
+                            exercisesAddedForGroup++; 
+                        }
+                    }
+                });
+
+                let cardioText = null;
+                if (objetivo === "Emagrecimento" || Math.random() > 0.4) {
+                    const availableCardio = cardioExercises[nivel];
+                    if (availableCardio && availableCardio.length > 0) {
+                        const cardioEscolhido = availableCardio[Math.floor(Math.random() * availableCardio.length)];
+                        cardioText = cardioEscolhido.nome;
+                        if (objetivo === "Emagrecimento") {
+                            cardioText += " - Mantenha a intensidade para maximizar a queima de gordura!";
+                        }
+                    } else {
+                        cardioText = "Não foi possível gerar um exercício de cardio para este nível.";
+                    }
+                }
+
+                generatedTrainingPlan.push({
+                    dayLabel: diaLetra,
+                    muscleGroups: gruposDoDia,
+                    exercises: currentDayExercises,
+                    cardio: cardioText,
+                });
+            });
+
+            displayGeneratedTrainingPlan();
+        }
+
+        // --- PDF EXPORT LOGIC ---
+        function cleanTextForPdf(text) {
+            if (!text) return '';
+            const cleaned = text
+                .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, '')
+                .replace(/<strong>(.*?)<\/strong>/g, '$1')
+                .replace(/<em>(.*?)<\/em>/g, '$1')
+                .replace(/<hr.*?>/g, '\n------------------------------------------------------\n')
+                .trim();
+            return cleaned;
+        }
+
+
+        function exportarTreinoParaPDF() {
+            if (!treinoGeradoConteudoParaPDF.aluno || treinoGeradoConteudoParaPDF.dias.length === 0) {
+                showModal("Por favor, gere um treino primeiro antes de exportar para PDF.");
+                return;
+            }
+
+            const doc = new window.jspdf.jsPDF();
+            const { aluno, idade, peso, altura, sexo, nivel, objetivo, tecnicas, observacoes, dias } = treinoGeradoConteudoParaPDF;
+            
+            const margin = 15;
+            let yOffset = margin;
+            const lineHeight = 7;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+
+            const addPageContent = () => {
+                doc.setFontSize(10);
+                doc.setTextColor(150, 150, 150);
+                doc.text("Gerado por seu Treinador Pessoal.", margin, pageHeight - 10);
+                doc.text(`Página ${doc.internal.getNumberOfPages()}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+
+                if (YOUR_LOGO_BASE64_STRING_HERE) {
+                    const logoWidth = 25; // in mm
+                    const logoHeight = 25; // in mm
+                    doc.addImage(YOUR_LOGO_BASE64_STRING_HERE, 'PNG', pageWidth - margin - logoWidth, margin, logoWidth, logoHeight);
+                }
+            };
+
+            addPageContent(); // Add content to the first page
+
+            // Main Title
+            doc.setFontSize(22);
+            doc.setTextColor(30, 78, 114); // Dark blue
+            doc.text(`Treino Personalizado para ${cleanTextForPdf(aluno)}`, pageWidth / 2, yOffset + 10, { align: 'center' }); // Adjusted Y for logo
+            yOffset += lineHeight * 3;
+
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margin, yOffset, pageWidth - margin, yOffset);
+            yOffset += lineHeight;
+
+            doc.setFontSize(12);
+            doc.setTextColor(50, 50, 50);
+
+            doc.text(`Idade: ${idade} anos`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Peso: ${peso} kg`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Altura: ${altura} cm`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Sexo: ${sexo}`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Nível: ${nivel}`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Objetivo: ${objetivo}`, margin, yOffset); yOffset += lineHeight;
+            
+            const alturaMeters = altura / 100;
+            const imc = peso / (alturaMeters * alturaMeters);
+            let imcClassification = "";
+            if (imc < 18.5) { imcClassification = "Abaixo do peso"; } else if (imc >= 18.5 && imc <= 24.9) { imcClassification = "Peso normal"; } else if (imc >= 25.0 && imc <= 29.9) { imcClassification = "Sobrepeso"; } else { imcClassification = "Obesidade"; }
+            const minIdealWeight = 18.5 * (alturaMeters ** 2);
+            const maxIdealWeight = 24.9 * (alturaMeters ** 2);
+
+            let tmb;
+            if (sexo === 'Masculino') { tmb = (10 * peso) + (6.25 * altura) - (5 * idade) + 5; } else { tmb = (10 * peso) + (6.25 * altura) - (5 * idade) - 161; }
+            const activityFactor = (objetivo === "Emagrecimento") ? 1.375 : (objetivo === "Hipertrofia" ? 1.55 : 1.375); // Simple activity factor
+            let caloriesNeeded = tmb * activityFactor;
+            if (objetivo === 'Hipertrofia') { caloriesNeeded += 300; } else if (objetivo === 'Emagrecimento') { caloriesNeeded -= 500; } // Adjusted for more common values
+
+            doc.text(`IMC: ${imc.toFixed(2)} (${imcClassification})`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Faixa de Peso Ideal: ${minIdealWeight.toFixed(2)} kg - ${maxIdealWeight.toFixed(2)} kg`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`TMB (Taxa Metabólica Basal): ${tmb.toFixed(2)} calorias/dia`, margin, yOffset); yOffset += lineHeight;
+            doc.text(`Calorias Estimadas para o Objetivo: ${caloriesNeeded.toFixed(2)} calorias/dia`, margin, yOffset); yOffset += lineHeight;
+            
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(69, 123, 157);
+            const motivationalPhrase = "Disciplina é o que transforma intenção em conquista.";
+            const phraseLines = doc.splitTextToSize(motivationalPhrase, pageWidth - 2 * margin);
+            doc.text(phraseLines, pageWidth / 2, yOffset + lineHeight, { align: 'center' });
+            yOffset += lineHeight * (phraseLines.length + 1);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(50, 50, 50);
+            yOffset += lineHeight;
+
+
+            if (tecnicas.length > 0) {
+                doc.text(`Técnicas Avançadas: ${tecnicas.join(', ')}`, margin, yOffset);
+                yOffset += lineHeight;
+            }
+            if (observacoes) {
+                const obsLines = doc.splitTextToSize(`Observações: ${cleanTextForPdf(observacoes)}`, pageWidth - 2 * margin);
+                doc.text(obsLines, margin, yOffset);
+                yOffset += lineHeight * obsLines.length;
+            }
+            yOffset += lineHeight;
+
+            doc.line(margin, yOffset, pageWidth - margin, yOffset);
+            yOffset += lineHeight * 1.5;
+
+            dias.forEach((dia, index) => {
+                // Check if new page is needed for the day's content
+                const minSpaceForDay = 4 * lineHeight + 20; // Title + warmup est.
+                if (yOffset + minSpaceForDay > pageHeight - margin) {
+                    doc.addPage();
+                    yOffset = margin;
+                    addPageContent();
+                    yOffset += lineHeight * 2;
+                }
+
+                // Day Title
+                doc.setFontSize(16);
+                doc.setTextColor(30, 78, 114);
+                doc.text(`DIA ${dia.dayName}: ${dia.groups.join(' + ')}`, margin, yOffset);
+                yOffset += lineHeight * 1.5;
+
+                // Warm-up
+                doc.setFontSize(12);
+                doc.setTextColor(50, 50, 50);
+                doc.text('Aquecimento Geral (5-10 min):', margin, yOffset);
+                yOffset += lineHeight;
+                dia.warmup.forEach(item => {
+                    const warmupItemLines = doc.splitTextToSize(`  - ${cleanTextForPdf(item)}`, pageWidth - 2 * margin);
+                    doc.text(warmupItemLines, margin, yOffset);
+                    yOffset += lineHeight * warmupItemLines.length;
+                });
+                yOffset += lineHeight;
+
+                // Strength Exercises Table
+                const tableHeaders = [['Exercício', 'Equipamento', 'Séries/Repetições', 'Descanso', 'Técnica']];
+                const tableData = dia.exercises.map(ex => [
+                    cleanTextForPdf(ex.nome),
+                    cleanTextForPdf(ex.equipamento),
+                    cleanTextForPdf(ex.execucao),
+                    cleanTextForPdf(ex.descanso),
+                    cleanTextForPdf(ex.tecnica || '-')
+                ]);
+
+                if (tableData.length > 0) {
+                     doc.autoTable({
+                        startY: yOffset,
+                        head: tableHeaders,
+                        body: tableData,
+                        theme: 'grid',
+                        styles: {
+                            font: 'helvetica',
+                            fontSize: 10,
+                            cellPadding: 2,
+                            lineColor: 200,
+                            lineWidth: 0.1,
+                            overflow: 'linebreak'
+                        },
+                        headStyles: {
+                            fillColor: [69, 123, 157],
+                            textColor: [255, 255, 255],
+                            fontStyle: 'bold'
+                        },
+                        bodyStyles: {
+                            textColor: [50, 50, 50]
+                        },
+                        alternateRowStyles: {
+                            fillColor: [240, 240, 240]
+                        },
+                        margin: { left: margin, right: margin },
+                        didDrawPage: (data) => {
+                            addPageContent();
+                        }
+                    });
+                    yOffset = doc.autoTable.previous.finalY + lineHeight;
+                } else {
+                    doc.text("Nenhum exercício gerado para este dia.", margin, yOffset);
+                    yOffset += lineHeight * 2;
+                }
+               
+                if (dia.cardio) {
+                    if (yOffset + 2 * lineHeight > pageHeight - margin) {
+                        doc.addPage();
+                        yOffset = margin;
+                        addPageContent();
+                        yOffset += lineHeight * 2;
+                    }
+                    doc.setFontSize(12);
+                    doc.setTextColor(50, 50, 50);
+                    const cardioLines = doc.splitTextToSize(`Cardio: ${cleanTextForPdf(dia.cardio)}`, pageWidth - 2 * margin);
+                    doc.text(cardioLines, margin, yOffset);
+                    yOffset += lineHeight * cardioLines.length;
+                }
+                yOffset += lineHeight;
+
+                yOffset += lineHeight * 2;
+            });
+
+            if (tecnicas.length > 0) {
+                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                    doc.addPage();
+                    yOffset = margin;
+                    addPageContent();
+                    yOffset += lineHeight * 2;
+                }
+                doc.setFontSize(14);
+                doc.setTextColor(30, 78, 114);
+                doc.text('Explicação das Técnicas Avançadas:', margin, yOffset);
+                yOffset += lineHeight * 1.5;
+
+                doc.setFontSize(10);
+                doc.setTextColor(50, 50, 50);
+                tecnicas.forEach(tech => {
+                    if (tecnicasExplanations[tech]) {
+                        if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                            doc.addPage();
+                            yOffset = margin;
+                            addPageContent();
+                            yOffset += lineHeight * 2;
+                            doc.setFontSize(14);
+                            doc.setTextColor(30, 78, 114);
+                            doc.text('Explicação das Técnicas Avançadas (Continuação):', margin, yOffset);
+                            yOffset += lineHeight * 1.5;
+                            doc.setFontSize(10);
+                            doc.setTextColor(50, 50, 50);
+                        }
+
+                        doc.setFont('helvetica', 'bold');
+                        const titleLines = doc.splitTextToSize(`- ${tech}:`, pageWidth - 2 * margin - 10);
+                        doc.text(titleLines, margin + 5, yOffset);
+                        yOffset += lineHeight * titleLines.length;
+
+                        doc.setFont('helvetica', 'normal');
+                        const contentLines = doc.splitTextToSize(cleanTextForPdf(tecnicasExplanations[tech]), pageWidth - 2 * margin - 15);
+                        doc.text(contentLines, margin + 10, yOffset);
+                        yOffset += lineHeight * contentLines.length;
+                        yOffset += lineHeight * 0.5;
+                    }
+                });
+            }
+
+            const prompt = `Com base em um usuário de nível ${nivel}, sexo ${sexo}, ${idade} anos de idade, pesando ${peso}kg e ${altura}cm de altura, com o objetivo de ${objetivo}, forneça 3 dicas adicionais concisas e acionáveis para sua jornada fitness. Foque *apenas* em alimentação, suplementação, descanso e hidratação. Responda em português. Formate cada dica como "1. **Título da Dica**: Conteúdo da dica."`;
+
+            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${"YOUR_GEMINI_API_KEY"}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
+            })
+            .then(response => response.json())
+            .then(result => {
+                let llmTips = "1. **Alimentação Saudável**: Consuma proteínas magras, carboidratos complexos e gorduras saudáveis para sustentar a energia e a recuperação.\n2. **Hidratação Constante**: Beba bastante água ao longo do dia, especialmente antes, durante e depois dos treinos, para otimizar o desempenho e a saúde geral.\n3. **Sono Reparador**: Priorize 7-9 horas de sono de qualidade por noite, essencial para a recuperação muscular e hormonal.";
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0 && result.candidates[0].content.parts[0].text) {
+                    llmTips = result.candidates[0].content.parts[0].text;
+                }
+                
+                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                    doc.addPage();
+                    yOffset = margin;
+                    addPageContent();
+                    yOffset += lineHeight * 2;
+                }
+
+                doc.setFontSize(14);
+                doc.setTextColor(30, 78, 114);
+                doc.text('Dicas Adicionais do Especialista:', margin, yOffset);
+                yOffset += lineHeight * 1.5;
+
+                doc.setFontSize(10);
+                doc.setTextColor(50, 50, 50);
+
+                const tipRegex = /(\d+\.\s*\*\*(.*?)\*\*:\s*)([\s\S]*?)(?=\n\d+\.|$)/g;
+                let match;
+                let currentTipYOffset = yOffset;
+
+                tipRegex.lastIndex = 0;
+
+                while ((match = tipRegex.exec(llmTips)) !== null) {
+                    const title = match[2];
+                    const content = match[3].trim();
+
+                    if (currentTipYOffset + 4 * lineHeight > pageHeight - margin) {
+                        doc.addPage();
+                        currentTipYOffset = margin;
+                        addPageContent();
+                        currentTipYOffset += lineHeight * 2;
+                        doc.setFontSize(14);
+                        doc.setTextColor(30, 78, 114);
+                        doc.text('Dicas Adicionais do Especialista (Continuação):', margin, currentTipYOffset);
+                        currentTipYOffset += lineHeight * 1.5;
+                        doc.setFontSize(10);
+                        doc.setTextColor(50, 50, 50);
+                    }
+
+                    doc.setFont('helvetica', 'bold');
+                    const titleLines = doc.splitTextToSize(`- ${cleanTextForPdf(title)}:`, pageWidth - 2 * margin - 10);
+                    doc.text(titleLines, margin + 5, currentTipYOffset);
+                    currentTipYOffset += lineHeight * titleLines.length;
+
+                    doc.setFont('helvetica', 'normal');
+                    const contentLines = doc.splitTextToSize(cleanTextForPdf(content), pageWidth - 2 * margin - 15);
+                    doc.text(contentLines, margin + 10, currentTipYOffset);
+                    currentTipYOffset += lineHeight * contentLines.length;
+                    currentTipYOffset += lineHeight * 0.5;
+                }
+                yOffset = currentTipYOffset;
+
+                doc.save(`treino_${cleanTextForPdf(aluno).replace(/\s/g, '_').toLowerCase()}.pdf`);
+            })
+            .catch(error => {
+                console.error("Error calling Gemini API for PDF tips:", error);
+                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                    doc.addPage();
+                    yOffset = margin;
+                    addPageContent();
+                    yOffset += lineHeight * 2;
+                }
+                doc.setFontSize(14);
+                doc.text('Dicas Adicionais do Especialista:', margin, yOffset); yOffset += lineHeight;
+                doc.setFontSize(10);
+                const lines = doc.splitTextToSize("Lembre-se de descansar adequadamente, manter a consistência nos treinos e sempre buscar a progressão de cargas ou intensidade.", pageWidth - 2 * margin);
+                doc.text(lines, margin, yOffset);
+                yOffset += lines.length * lineHeight;
+                doc.save(`treino_${cleanTextForPdf(aluno).replace(/\s/g, '_').toLowerCase()}.pdf`);
+            });
+        }
+
+
+        // Make functions globally accessible
+        window.addCustomDay = addCustomDay;
+        window.removeCustomDay = removeCustomDay;
+        window.gerarTreino = gerarTreino;
+        window.exportarTreinoParaPDF = exportarTreinoParaPDF;
+        window.showModal = showModal;
+        window.closeModal = closeModal;
+        window.openEditExerciseModal = openEditExerciseModal;
+        window.saveEditedExercise = saveEditedExercise;
+        window.removeExerciseFromGeneratedPlan = removeExerciseFromGeneratedPlan;
+        window.openAddExerciseToDayModal = openAddExerciseToDayModal;
+        window.populateAddExSelect = populateAddExSelect;
+        window.addNewExerciseToDay = addNewExerciseToDay;
+        window.updateAddExerciseGroupOptions = updateAddExerciseGroupOptions;
+    </script>
+</body>
+</html>
