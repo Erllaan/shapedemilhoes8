@@ -491,9 +491,9 @@
         <div class="input-group">
             <label>Exercícios Opcionais (Selecione para incluir):</label>
             <div class="checkbox-group">
-                <label><input type="checkbox" id="includeElastic" class="optional-exercise" value="Faixa Elástica"> Incluir Exercícios com Faixa Elástica</label>
-                <label><input type="checkbox" id="includeBodyweight" class="optional-exercise" value="Peso Corporal"> Incluir Exercícios com Peso Corporal (Flexões, etc.)</label>
-                <label><input type="checkbox" id="includeCables" class="optional-exercise" value="Cabos"> Incluir Exercícios com Cabos</label>
+                <label><input type="checkbox" id="includeFaixaElastica" class="optional-exercise" value="Faixa Elástica"> Incluir Exercícios com Faixa Elástica</label>
+                <label><input type="checkbox" id="includePesoCorporal" class="optional-exercise" value="Peso Corporal"> Incluir Exercícios com Peso Corporal (Flexões, etc.)</label>
+                <label><input type="checkbox" id="includeCabos" class="optional-exercise" value="Cabos"> Incluir Exercícios com Cabos</label>
                 <label><input type="checkbox" id="includeKettlebell" class="optional-exercise" value="Kettlebell"> Incluir Exercícios com Kettlebell</label>
             </div>
         </div>
@@ -601,6 +601,7 @@
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration and initialization
+        // Substitua 'YOUR_FIREBASE_CONFIG_JSON' pelo seu JSON de configuração do Firebase
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -1129,11 +1130,11 @@ Shadow boxing
                     // Load custom days
                     const customDivisionsContainer = document.getElementById('customDivisionsContainer');
                     customDivisionsContainer.innerHTML = ''; // Clear existing days
-                    dayCounter = 0; // Reset counter
+                    dayCounter = 0; // Reset counter BEFORE adding loaded days
                     if (data.customDays && data.customDays.length > 0) {
                         data.customDays.forEach(dayData => {
-                            addCustomDay(false); // Add a new day structure without saving immediately
-                            const currentDayDiv = document.getElementById(`custom_day_${dayCounter - 1}`); // Get the newly added day
+                            addCustomDay(false, dayData.id); // Add a new day structure, pass old ID for reference
+                            const currentDayDiv = document.getElementById(dayData.id); // Get the day by its original ID
                             if (currentDayDiv) {
                                 dayData.muscles.forEach(muscle => {
                                     const checkbox = currentDayDiv.querySelector(`input[value="${muscle}"]`);
@@ -1141,6 +1142,7 @@ Shadow boxing
                                 });
                             }
                         });
+                        updateDayLabels(); // Re-index after loading all saved days
                     } else {
                         addCustomDay(false); // Add at least one custom day if none saved
                     }
@@ -1149,7 +1151,9 @@ Shadow boxing
                     document.querySelectorAll('.optional-exercise').forEach(cb => cb.checked = false);
                     if (data.optionalExercises) {
                         data.optionalExercises.forEach(ex => {
-                            const checkbox = document.getElementById(`include${ex.replace(/\s/g, '')}`);
+                            // Corrected ID mapping for checkboxes, e.g., "Faixa Elástica" becomes "includeFaixaElastica"
+                            const checkboxId = `include${ex.replace(/\s/g, '')}`;
+                            const checkbox = document.getElementById(checkboxId);
                             if (checkbox) checkbox.checked = true;
                         });
                     }
@@ -1187,14 +1191,20 @@ Shadow boxing
         document.getElementById('nivel').addEventListener('change', saveUserData);
         document.getElementById('objetivo').addEventListener('change', saveUserData);
         document.getElementById('observacoesGerais').addEventListener('change', saveUserData);
-        document.getElementById('customDivisionsContainer').addEventListener('change', saveUserData); // Listen for changes in custom days
+        // Listen for changes in custom days container to save data
+        // Event delegation: listen on the parent container for changes within custom-day-entry elements
+        document.getElementById('customDivisionsContainer').addEventListener('change', (event) => {
+            if (event.target.type === 'checkbox' && event.target.name.includes('_group_checkbox')) {
+                saveUserData();
+            }
+        });
         document.querySelectorAll('.optional-exercise').forEach(cb => cb.addEventListener('change', saveUserData));
         document.querySelectorAll('.tecnica-avancada').forEach(cb => cb.addEventListener('change', saveUserData));
 
         // Função para adicionar um novo dia de treino personalizado
-        function addCustomDay(save = true) {
+        function addCustomDay(save = true, dayIdParam = null) {
             const container = document.getElementById('customDivisionsContainer');
-            const dayId = `custom_day_${dayCounter}`;
+            const dayId = dayIdParam || `custom_day_${dayCounter}`; // Use provided ID or generate new
             const dayLabel = String.fromCharCode(65 + dayCounter); // A, B, C...
 
             const dayDiv = document.createElement('div');
@@ -1218,7 +1228,7 @@ Shadow boxing
             `;
             container.appendChild(dayDiv);
             dayCounter++;
-            updateDayLabels(); // Atualiza os rótulos após adicionar
+            updateDayLabels(); // Atualiza os rótulos e IDs após adicionar
             if (save) saveUserData(); // Save changes after adding a day
         }
 
@@ -1228,13 +1238,13 @@ Shadow boxing
                 const dayToRemove = document.getElementById(id);
                 if (dayToRemove) {
                     dayToRemove.remove();
-                    updateDayLabels(); // Reorganiza os rótulos após remover
+                    updateDayLabels(); // Reorganiza os rótulos e IDs após remover
                     saveUserData(); // Save changes after removing a day
                 }
             });
         }
 
-        // Função para atualizar os rótulos dos dias (A, B, C...) após adicionar/remover
+        // Função para atualizar os rótulos dos dias (A, B, C...) e IDs após adicionar/remover
         function updateDayLabels() {
             const dayEntries = document.querySelectorAll('.custom-day-entry');
             dayEntries.forEach((entry, index) => {
@@ -1242,20 +1252,21 @@ Shadow boxing
                 const checkboxesContainer = entry.querySelector('.muscle-selection-group');
                 const removeBtn = entry.querySelector('.remove-day-btn');
 
+                const oldDayId = entry.id; // Capture old ID
                 const newDayLabel = String.fromCharCode(65 + index);
                 const newDayId = `custom_day_${index}`;
 
-                entry.id = newDayId;
+                entry.id = newDayId; // Update the element's ID
                 labelElement.textContent = `Dia ${newDayLabel}: Selecione os Grupos Musculares`;
                 
-                // Atualiza os nomes dos checkboxes para o novo ID do dia
-                Array.from(checkboxesContainer.querySelectorAll('input[type="checkbox"]')).forEach(checkbox => {
+                // Update checkbox names to the new ID
+                Array.from(checkboxesContainer.querySelectorAll(`input[name="${oldDayId}_group_checkbox"]`)).forEach(checkbox => {
                     checkbox.name = `${newDayId}_group_checkbox`;
                 });
 
                 removeBtn.setAttribute('onclick', `removeCustomDay('${newDayId}')`);
             });
-            dayCounter = dayEntries.length; // Garante que o contador esteja correto
+            dayCounter = dayEntries.length; // Ensure dayCounter reflects the current number of days
         }
 
         // Helper function to shuffle an array
@@ -1425,17 +1436,14 @@ Shadow boxing
                 generatedTrainingPlan[dayIndex].exercises.forEach((exInDay, idx) => {
                     if (idx !== exerciseIndex) {
                         const option = document.createElement('option');
-                        option.value = idx; // Store index for easy lookup
+                        option.value = exInDay.nome; // Store name for easy lookup
                         option.innerText = exInDay.nome;
                         editExPairSelect.appendChild(option);
                     }
                 });
                 // Select the currently paired exercise if it exists
                 if (exercise.pairedExercise) {
-                    const pairedIndex = generatedTrainingPlan[dayIndex].exercises.findIndex(ex => ex.nome === exercise.pairedExercise.nome);
-                    if (pairedIndex !== -1) {
-                        editExPairSelect.value = pairedIndex;
-                    }
+                    editExPairSelect.value = exercise.pairedExercise.nome;
                 }
             } else {
                 editExPairContainer.style.display = 'none';
@@ -1457,9 +1465,9 @@ Shadow boxing
 
             const editExPairSelect = document.getElementById('editExPair');
             if (exercise.tecnica === 'Bi-set' || exercise.tecnica === 'Superset') {
-                const pairedIndex = parseInt(editExPairSelect.value);
-                if (!isNaN(pairedIndex) && generatedTrainingPlan[currentEditDayIndex].exercises[pairedIndex]) {
-                    exercise.pairedExercise = generatedTrainingPlan[currentEditDayIndex].exercises[pairedIndex];
+                const pairedName = editExPairSelect.value;
+                if (pairedName) {
+                    exercise.pairedExercise = generatedTrainingPlan[currentEditDayIndex].exercises.find(ex => ex.nome === pairedName);
                 } else {
                     exercise.pairedExercise = null; // No valid pair selected
                 }
@@ -1580,7 +1588,7 @@ Shadow boxing
                 const selectedDayIndex = document.getElementById('addExDaySelect').value;
                 const exercisesInSelectedDay = generatedTrainingPlan[selectedDayIndex].exercises;
 
-                exercisesInSelectedDay.forEach((ex, idx) => {
+                exercisesInSelectedDay.forEach((ex) => {
                     const option = document.createElement('option');
                     option.value = ex.nome;
                     option.innerText = ex.nome;
@@ -1604,7 +1612,7 @@ Shadow boxing
                 exercisesInSelectedDay.forEach((ex, idx) => {
                     if (idx !== currentEditExerciseIndex) { // Don't allow pairing with itself
                         const option = document.createElement('option');
-                        option.value = idx; // Store index for easy lookup
+                        option.value = ex.nome; // Store name for easy lookup
                         option.innerText = ex.nome;
                         pairSelect.appendChild(option);
                     }
@@ -2256,7 +2264,7 @@ Shadow boxing
                 // Strength Exercises Table
                 const tableHeaders = [['Exercício', 'Equipamento', 'Séries/Repetições', 'Descanso', 'Técnica']];
                 const tableData = dia.exercises.map(ex => [
-                    ex.nome,
+                    ex.nome.replace(/\s\(Conjugado com.*?\)/, ''), // Clean name for PDF table
                     ex.equipamento,
                     ex.execucao,
                     ex.descanso,
@@ -2364,7 +2372,7 @@ Shadow boxing
             // Call LLM for additional tips
             const prompt = `Com base em um usuário de nível ${nivel}, sexo ${sexo}, ${idade} anos de idade, pesando ${peso}kg e ${altura}cm de altura, com o objetivo de ${objetivo}, forneça 3 dicas adicionais concisas e acionáveis para sua jornada fitness. Foque *apenas* em alimentação, suplementação, descanso e hidratação. Responda em português. Formate cada dica como "1. **Título da Dica**: Conteúdo da dica."`;
 
-            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${""}`, {
+            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY_HERE`, { // <<<<<<<<<<<< COLOQUE SUA CHAVE DA API AQUI
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
