@@ -3,800 +3,1262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Treinos Personalizados</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gerador de Treinos Personalizado para Alunos</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* Custom styles to override or extend Tailwind if needed */
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #2c3e50; /* Dark blue background */
-            color: #ecf0f1; /* Light gray text */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2b5876, #4e4376); /* Gradiente suave */
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            line-height: 1.6;
         }
+
         .container {
-            background-color: #34495e; /* Slightly lighter blue for containers */
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background-color: rgba(255, 255, 255, 0.1); /* Fundo semi-transparente claro */
+            backdrop-filter: blur(10px); /* Efeito de vidro fosco */
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 900px;
+            box-sizing: border-box;
+            animation: fadeIn 1s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        h1, h2 {
-            color: #e67e22; /* Orange for headings */
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+
+        h1 {
+            text-align: center;
+            color: #a8dadc; /* Azul claro */
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #e0f2f7;
+            font-size: 1.1em;
+        }
+
         .input-group input[type="text"],
-        .input-group input[type="email"],
-        .input-group input[type="password"],
         .input-group input[type="number"],
         .input-group select,
         .input-group textarea {
-            background-color: #4a6176; /* Darker input background */
-            color: #ecf0f1;
+            width: calc(100% - 24px); /* Ajuste para padding e borda */
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 1em;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            /* Garante que o texto dentro do select seja legível no Safari/Chrome */
+            -webkit-appearance: none; /* Remove estilo padrão do navegador */
+            -moz-appearance: none;    /* Remove estilo padrão do navegador */
+            appearance: none;         /* Remove estilo padrão do navegador */
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13.2-6.5h-258a17.6%2017.6%200%200%00-13.2%206.5%2017.6%2017.6%200%200%200%200%2022.2l128.6%20127.9c4.2%204.1%2011%204.1%2015.2%200l128.6-127.9a17.6%2017.6%200%200%200%200-22.2z%22%2F%3E%3C%2Fsvg%3E'); /* Seta branca personalizada */
+            background-repeat: no-repeat;
+            background-position: right 10px top 50%;
+            background-size: 12px auto;
         }
-        button {
-            background-color: #e67e22; /* Orange button */
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #d35400; /* Darker orange on hover */
-        }
-        button:disabled {
-            background-color: #95a5a6; /* Gray when disabled */
-            cursor: not-allowed;
-        }
-        #customDaysContainer {
-            border: 1px solid #7f8c8d;
-            background-color: #4a6176;
-        }
-        .custom-day-entry {
-            background-color: #3f556e;
-        }
-        .custom-day-entry .remove-day-btn {
-            background-color: #c0392b; /* Red for remove button */
-        }
-        .custom-day-entry .remove-day-btn:hover {
-            background-color: #a5281b;
-        }
-        #resultado {
-            background-color: #34495e;
-            line-height: 1.6;
-        }
-        #resultado h3 {
-            color: #e67e22;
-        }
-        #resultado ul li {
-            background-color: #4a6176;
-        }
-        #resultado ul li strong {
-            color: #f1c40f; /* Yellow for exercise names */
-        }
-        hr {
-            border: 0;
-            height: 1px;
-            background: #7f8c8d;
+        
+        /* Ajuste específico para as opções dentro do select */
+        .input-group select option {
+            background-color: #1d3557; /* Fundo escuro para as opções */
+            color: #fff; /* Texto branco */
         }
 
-        /* Modal Styles */
+        .input-group textarea {
+            min-height: 80px; /* Altura mínima para observações */
+            resize: vertical; /* Permite redimensionar verticalmente */
+        }
+
+        .input-group input[type="text"]:focus,
+        .input-group input[type="number"]:focus,
+        .input-group select:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #a8dadc;
+            box-shadow: 0 0 0 4px rgba(168, 218, 220, 0.4);
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 25px;
+            background-color: #457b9d; /* Azul médio */
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            background-color: #1d3557; /* Azul escuro */
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        button#exportPdfBtn {
+            background-color: #f4a261; /* Laranja suave */
+            margin-top: 15px;
+        }
+
+        button#exportPdfBtn:hover {
+            background-color: #e76f51; /* Laranja mais forte */
+        }
+
+        /* Estilos para a nova seção de dias personalizados */
+        #customDivisionsContainer {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-day-entry {
+            background-color: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-day-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .custom-day-entry label {
+            font-size: 1em;
+            margin-bottom: 5px;
+            color: #e0f2f7;
+        }
+
+        /* Estilo para o grupo de checkboxes dentro do dia personalizado */
+        .custom-day-entry .muscle-selection-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px; /* Espaço antes do botão remover */
+        }
+
+        .custom-day-entry .muscle-selection-group label {
+            display: flex;
+            align-items: center;
+            font-size: 0.95em;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: background-color 0.2s ease;
+        }
+        
+        .custom-day-entry .muscle-selection-group label:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-day-entry .muscle-selection-group input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.1);
+            accent-color: #457b9d;
+        }
+
+        .custom-day-entry .remove-day-btn {
+            width: 100px;
+            padding: 8px 10px;
+            margin: 0;
+            font-size: 0.9em;
+            background-color: #e76f51; /* Cor para remover */
+            display: block; /* Para ocupar a largura total em mobile */
+            margin-left: auto; /* Alinhar à direita em desktop */
+            margin-right: auto; /* Centralizar em mobile */
+            box-shadow: none;
+        }
+
+        .custom-day-entry .remove-day-btn:hover {
+            background-color: #d64a2e;
+            transform: none;
+        }
+
+        #addCustomDayBtn {
+            margin-top: 15px;
+            background-color: #2a9d8f; /* Cor para adicionar dia */
+        }
+
+        #addCustomDayBtn:hover {
+            background-color: #218579;
+        }
+
+        /* Estilos para a seção de resultados editável */
+        #resultado {
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 30px;
+            margin-top: 30px;
+            border-radius: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Changed from Consolas */
+            font-size: 0.95em;
+            line-height: 1.8;
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+            max-height: 70vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        #resultado h2 {
+            color: #a8dadc;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        #resultado h3 {
+            color: #a8dadc;
+            font-size: 1.4em;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+
+        #resultado strong {
+            color: #f4a261; /* Laranja para destaque */
+        }
+
+        /* Styles for individual exercise items in the generated plan */
+        .generated-day-section {
+            background-color: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .generated-day-section h4 {
+            color: #e0f2f7;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+
+        .generated-exercise-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .generated-exercise-item span {
+            flex-grow: 1; /* Allow text to take available space */
+            margin-right: 10px; /* Space between text and buttons */
+        }
+
+        .generated-exercise-item .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .generated-exercise-item button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            margin-top: 0;
+            width: auto;
+            max-width: none;
+            box-shadow: none;
+            border-radius: 5px;
+        }
+
+        .generated-exercise-item .edit-btn {
+            background-color: #2a9d8f; /* Greenish for edit */
+        }
+        .generated-exercise-item .edit-btn:hover {
+            background-color: #218579;
+        }
+
+        .generated-exercise-item .remove-btn {
+            background-color: #e76f51; /* Orange-red for remove */
+        }
+        .generated-exercise-item .remove-btn:hover {
+            background-color: #d64a2e;
+        }
+
+        .add-exercise-to-day-form {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .add-exercise-to-day-form select,
+        .add-exercise-to-day-form input[type="number"],
+        .add-exercise-to-day-form input[type="text"] {
+            width: calc(100% - 24px);
+            margin-bottom: 10px;
+        }
+        .add-exercise-to-day-form button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        .checkbox-group { /* Mantido para técnicas avançadas e opcionais */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.3);
+            accent-color: #457b9d; /* Cor do checkbox */
+        }
+
+        /* Modal styling */
         .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1000; /* Sit on top */
+            display: none;
+            position: fixed;
+            z-index: 1000;
             left: 0;
             top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
             justify-content: center;
             align-items: center;
+            backdrop-filter: blur(5px);
         }
 
         .modal-content {
-            background-color: #34495e;
-            border: 1px solid #7f8c8d;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
             position: relative;
+            color: #333; /* Dark text for modal content */
         }
 
         .close-button {
             color: #aaa;
-            float: right;
             font-size: 28px;
             font-weight: bold;
             position: absolute;
             top: 10px;
-            right: 15px;
+            right: 20px;
             cursor: pointer;
         }
 
         .close-button:hover,
         .close-button:focus {
-            color: #ecf0f1;
+            color: black;
             text-decoration: none;
-            cursor: pointer;
         }
 
-        .edit-buttons button {
-            background-color: #2980b9; /* Blue for edit */
-        }
-
-        .edit-buttons button.remove {
-            background-color: #c0392b; /* Red for remove */
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            button {
+                font-size: 1.1em;
+                padding: 12px;
+            }
+            .custom-day-entry .remove-day-btn {
+                width: 100%; /* Botão remover ocupa toda a largura */
+            }
+            .generated-exercise-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            .generated-exercise-item .actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
     </style>
 </head>
-<body class="flex flex-col items-center min-h-screen p-5">
-    <div id="appContent" class="container p-8 rounded-xl max-w-3xl w-full mb-5">
-        <h1 class="text-4xl font-bold mb-8">Gerador de Treinos Personalizados</h1>
+<body>
+    <div class="container">
+        <h1>✨ Gerador de Treinos Personalizados para Alunos ✨</h1>
 
-        <div class="mb-4">
-            <label for="nomeAluno" class="block text-sm font-bold mb-2">Nome do Aluno:</label>
-            <input type="text" id="nomeAluno" placeholder="Digite o nome do aluno" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="idade" class="block text-sm font-bold mb-2">Idade:</label>
-                <input type="number" id="idade" placeholder="Idade em anos" required min="10" max="100" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <div>
-                <label for="peso" class="block text-sm font-bold mb-2">Peso (kg):</label>
-                <input type="number" id="peso" placeholder="Peso em kg" required step="0.1" min="20" max="300" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <div>
-                <label for="altura" class="block text-sm font-bold mb-2">Altura (cm):</label>
-                <input type="number" id="altura" placeholder="Altura em cm" required min="100" max="250" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <div>
-                <label for="sexo" class="block text-sm font-bold mb-2">Sexo:</label>
-                <select id="sexo" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
-                    <option value="">Selecione</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Feminino">Feminino</option>
-                </select>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="nivel" class="block text-sm font-bold mb-2">Nível de Treino:</label>
-                <select id="nivel" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
-                    <option value="">Selecione</option>
-                    <option value="Iniciante">Iniciante</option>
-                    <option value="Intermediario">Intermediário</option>
-                    <option value="Avancado">Avançado</option>
-                </select>
-            </div>
-            <div>
-                <label for="objetivo" class="block text-sm font-bold mb-2">Objetivo:</label>
-                <select id="objetivo" required class="p-3 border border-gray-600 rounded-lg w-full text-base">
-                    <option value="">Selecione</option>
-                    <option value="Hipertrofia">Hipertrofia</option>
-                    <option value="Emagrecimento">Emagrecimento</option>
-                    <option value="Resistencia">Resistência</option>
-                </select>
-            </div>
+        <div class="input-group">
+            <label for="nomeAluno">Nome do Aluno:</label>
+            <input type="text" id="nomeAluno" placeholder="Nome completo do aluno" required>
         </div>
 
-        <div class="mb-6">
-            <label class="block text-sm font-bold mb-2">Equipamentos Disponíveis:</label>
-            <div class="flex flex-wrap gap-4" id="equipamentos">
-                <div class="flex items-center"><input type="checkbox" id="equipamentoHalteres" value="Halteres" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoHalteres" class="ml-2 text-base">Halteres</label></div>
-                <div class="flex items-center"><input type="checkbox" id="equipamentoBarras" value="Barras" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoBarras" class="ml-2 text-base">Barras</label></div>
-                <div class="flex items-center"><input type="checkbox" id="equipamentoMaquinas" value="Máquinas" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoMaquinas" class="ml-2 text-base">Máquinas</label></div>
-                <div class="flex items-center"><input type="checkbox" id="equipamentoCabos" value="Cabos" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoCabos" class="ml-2 text-base">Cabos</label></div>
-                <div class="flex items-center"><input type="checkbox" id="equipamentoPesoCorporal" value="Peso Corporal" class="form-checkbox h-5 w-5 text-orange-600"><label for="equipamentoPesoCorporal" class="ml-2 text-base">Peso Corporal</label></div>
-            </div>
+        <div class="input-group">
+            <label for="idade">Idade:</label>
+            <input type="number" id="idade" placeholder="Ex: 30" required>
         </div>
 
-        <div class="mb-6">
-            <label class="block text-sm font-bold mb-2">Técnicas Avançadas (selecione as que deseja incluir, se for Avançado):</label>
-            <div class="flex flex-wrap gap-4" id="tecnicas">
-                <div class="flex items-center"><input type="checkbox" id="tecnicaDropSet" value="Drop Set" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaDropSet" class="ml-2 text-base">Drop Set</label></div>
-                <div class="flex items-center"><input type="checkbox" id="tecnicaBiSet" value="Bi-set" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaBiSet" class="ml-2 text-base">Bi-set</label></div>
-                <div class="flex items-center"><input type="checkbox" id="tecnicaSuperset" value="Superset" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaSuperset" class="ml-2 text-base">Superset</label></div>
-                <div class="flex items-center"><input type="checkbox" id="tecnicaFST7" value="FST-7" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaFST7" class="ml-2 text-base">FST-7</label></div>
-                <div class="flex items-center"><input type="checkbox" id="tecnicaRestPause" value="Rest-Pause" class="form-checkbox h-5 w-5 text-orange-600"><label for="tecnicaRestPause" class="ml-2 text-base">Rest-Pause</label></div>
+        <div class="input-group">
+            <label for="peso">Peso (kg):</label>
+            <input type="number" id="peso" placeholder="Ex: 70" required>
+        </div>
+
+        <div class="input-group">
+            <label for="altura">Altura (cm):</label>
+            <input type="number" id="altura" placeholder="Ex: 175" required>
+        </div>
+
+        <div class="input-group">
+            <label for="sexo">Sexo:</label>
+            <select id="sexo">
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="nivel">Nível de Treinamento:</label>
+            <select id="nivel">
+                <option value="Iniciante">Iniciante</option>
+                <option value="Intermediario">Intermediário</option>
+                <option value="Avancado">Avançado</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="objetivo">Objetivo do Treino:</label>
+            <select id="objetivo">
+                <option value="Hipertrofia">Hipertrofia (Ganho de Massa Muscular)</option>
+                <option value="Emagrecimento">Emagrecimento (Perda de Gordura)</option>
+                <option value="Forca">Força (Aumento de Cargas)</option>
+                <option value="Resistencia">Resistencia Muscular</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Configuração dos Dias de Treino:</label>
+            <div id="customDivisionsContainer">
+                </div>
+            <button type="button" id="addCustomDayBtn" onclick="addCustomDay()">Adicionar Dia de Treino</button>
+        </div>
+        <div class="input-group">
+            <label>Exercícios Opcionais (Selecione para incluir):</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="includeElastic" class="optional-exercise" value="Faixa Elástica"> Incluir Exercícios com Faixa Elástica</label>
+                <label><input type="checkbox" id="includeBodyweight" class="optional-exercise" value="Peso Corporal"> Incluir Exercícios com Peso Corporal (Flexões, etc.)</label>
+                <label><input type="checkbox" id="includeCables" class="optional-exercise" value="Cabos"> Incluir Exercícios com Cabos</label>
+                <label><input type="checkbox" id="includeKettlebell" class="optional-exercise" value="Kettlebell"> Incluir Exercícios com Kettlebell</label>
             </div>
         </div>
 
-        <div class="mb-6">
-            <label for="observacoes" class="block text-sm font-bold mb-2">Observações Adicionais (opcional):</label>
-            <textarea id="observacoes" rows="3" placeholder="Restrições, focos específicos, etc." class="p-3 border border-gray-600 rounded-lg w-full text-base"></textarea>
-        </div>
-
-        <h2 class="text-2xl font-bold mt-8 mb-4">Divisão Semanal do Treino</h2>
-        <div id="customDaysContainer" class="border border-gray-600 p-4 rounded-lg mb-4">
+        <div class="input-group">
+            <label>Técnicas Avançadas (Opcional):</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="tecnica-avancada" value="Drop set"> Drop set</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Pirâmide"> Pirâmide</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Superset"> Superset</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Rest-pause"> Rest-pause</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="FST-7"> FST-7</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Bi-set"> Bi-set</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Cluster set"> Cluster set</label>
+                <label><input type="checkbox" class="tecnica-avancada" value="Myo-reps"> Myo-reps</label>
             </div>
-        <button type="button" onclick="addCustomDay()" class="py-2 px-4 rounded-lg text-white font-bold text-base">Adicionar Dia de Treino</button>
-
-        <div class="flex flex-col md:flex-row justify-center gap-4 mt-8">
-            <button onclick="gerarTreino()" class="py-3 px-6 rounded-lg text-white font-bold text-lg">Gerar Treino</button>
-            <button onclick="exportarTreinoParaPDF()" class="py-3 px-6 rounded-lg text-white font-bold text-lg">Exportar para PDF</button>
         </div>
 
-        <div id="resultado" class="p-6 rounded-xl mt-8">
-            <p class='text-gray-400'>Preencha os dados acima e clique em 'Gerar Treino'.</p>
+        <div class="input-group">
+            <label for="observacoesGerais">Observações Gerais para o Aluno:</label>
+            <textarea id="observacoesGerais" placeholder="Ex: 'Focar na boa execução', 'Lembre-se da hidratação'." rows="3"></textarea>
         </div>
-    </div>
 
-    <div id="genericModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
-        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
-            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal()">&times;</span>
-            <p id="modalMessage" class="text-lg mb-6"></p>
-            <button onclick="closeModal()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">OK</button>
+        <button onclick="gerarTreino()">Gerar Treino</button>
+        <button id="addExerciseToDayBtnMain" onclick="openAddExerciseToDayModal()">Adicionar Exercício a um Dia</button>
+        <button id="exportPdfBtn" onclick="exportarTreinoParaPDF()">Exportar para PDF</button>
+
+        <div id="resultado">
+            <p>O seu treino será gerado aqui!</p>
         </div>
     </div>
 
-    <div id="editExerciseModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
-        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
-            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal('editExerciseModal')">&times;</span>
-            <h3 class="text-2xl font-bold mb-6">Editar Exercício</h3>
-            <div class="mb-4">
-                <label for="editExName" class="block text-sm font-bold mb-2">Nome do Exercício:</label>
-                <input type="text" id="editExName" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <p id="modalMessage"></p>
+            <div id="editExerciseForm" style="display: none;">
+                <h3>Editar Exercício</h3>
+                <label for="editExNome">Nome:</label>
+                <input type="text" id="editExNome">
+                <label for="editExSeries">Séries:</label>
+                <input type="number" id="editExSeries" min="1">
+                <label for="editExReps">Repetições:</label>
+                <input type="text" id="editExReps"> <label for="editExDescanso">Descanso (s):</label>
+                <input type="number" id="editExDescanso" min="0">
+                <label for="editExTecnica">Técnica:</label>
+                <select id="editExTecnica">
+                    <option value="">Nenhuma</option>
+                    <option value="Drop set">Drop set</option>
+                    <option value="Pirâmide">Pirâmide</option>
+                    <option value="Superset">Superset</option>
+                    <option value="Rest-pause">Rest-pause</option>
+                    <option value="FST-7">FST-7</option>
+                    <option value="Bi-set">Bi-set</option>
+                    <option value="Cluster set">Cluster set</option>
+                    <option value="Myo-reps">Myo-reps</option>
+                </select>
+                <div id="editExPairContainer" style="display: none;">
+                    <label for="editExPair">Segundo Exercício (para Bi-set/Superset):</label>
+                    <select id="editExPair"></select>
+                </div>
+                <button onclick="saveEditedExercise()">Salvar</button>
             </div>
-            <div class="mb-4">
-                <label for="editExSetsReps" class="block text-sm font-bold mb-2">Séries/Repetições:</label>
-                <input type="text" id="editExSetsReps" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <div class="mb-4">
-                <label for="editExRest" class="block text-sm font-bold mb-2">Descanso (segundos):</label>
-                <input type="number" id="editExRest" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <div class="mb-6">
-                <label for="editExTechnique" class="block text-sm font-bold mb-2">Técnica:</label>
-                <input type="text" id="editExTechnique" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-            </div>
-            <button onclick="saveEditedExercise()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">Salvar Alterações</button>
-        </div>
-    </div>
-
-    <div id="addExerciseToDayModal" class="modal fixed inset-0 flex items-center justify-center p-4" style="display: none;">
-        <div class="modal-content bg-gray-700 p-8 rounded-xl max-w-lg w-full">
-            <span class="close-button text-gray-400 hover:text-white absolute top-3 right-5 text-2xl cursor-pointer" onclick="closeModal('addExerciseToDayModal')">&times;</span>
-            <h3 class="text-2xl font-bold mb-6">Adicionar Exercício</h3>
-            <div class="mb-4">
-                <label for="addExMuscleGroup" class="block text-sm font-bold mb-2">Grupo Muscular (para filtrar):</label>
-                <select id="addExMuscleGroup" onchange="updateAddExerciseGroupOptions()" class="p-3 border border-gray-600 rounded-lg w-full text-base">
+            <div id="addExerciseToDayForm" style="display: none;">
+                <h3>Adicionar Exercício ao Dia</h3>
+                <label for="addExDaySelect">Selecionar Dia:</label>
+                <select id="addExDaySelect" onchange="updateAddExerciseGroupOptions()">
+                    </select>
+                <label for="addExGroupSelect">Grupo Muscular:</label>
+                <select id="addExGroupSelect" onchange="populateAddExSelect()">
                     <option value="">Selecione um Grupo</option>
-                    </select>
+                </select>
+                <label for="addExSelect">Exercício:</label>
+                <select id="addExSelect"></select>
+                <label for="addExSeries">Séries:</label>
+                <input type="number" id="addExSeries" min="1" value="3">
+                <label for="addExReps">Repetições:</label>
+                <input type="text" id="addExReps" value="8-12">
+                <label for="addExDescanso">Descanso (s):</label>
+                <input type="number" id="addExDescanso" min="0" value="60">
+                <label for="addExTecnica">Técnica:</label>
+                <select id="addExTecnica">
+                    <option value="">Nenhuma</option>
+                    <option value="Drop set">Drop set</option>
+                    <option value="Pirâmide">Pirâmide</option>
+                    <option value="Superset">Superset</option>
+                    <option value="Rest-pause">Rest-pause</option>
+                    <option value="FST-7">FST-7</option>
+                    <option value="Bi-set">Bi-set</option>
+                    <option value="Cluster set">Cluster set</option>
+                    <option value="Myo-reps">Myo-reps</option>
+                </select>
+                <div id="addExPairContainer" style="display: none;">
+                    <label for="addExPair">Segundo Exercício (para Bi-set/Superset):</label>
+                    <select id="addExPair"></select>
+                </div>
+                <button onclick="addNewExerciseToDay()">Adicionar</button>
             </div>
-            <div class="mb-6">
-                <label for="addExSelect" class="block text-sm font-bold mb-2">Selecione o Exercício:</label>
-                <select id="addExSelect" class="p-3 border border-gray-600 rounded-lg w-full text-base">
-                    <option value="">Selecione um Exercício</option>
-                    </select>
-            </div>
-            <button onclick="addNewExerciseToDay()" class="py-2 px-5 rounded-lg text-white font-bold text-base w-full">Adicionar ao Dia</button>
         </div>
     </div>
 
-    <script>
-        // Firebase Config (REPLACE WITH YOUR ACTUAL CONFIG)
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        // NO LONGER NEEDED: const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Firebase configuration and initialization
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // NO LONGER NEEDED: let currentUser = null;
-        let generatedTrainingPlan = []; // Store the full generated plan for potential editing
-        let treinoGeradoConteudoParaPDF = {}; // Stores a structured object for PDF export
-        let exerciciosDB = []; // This will store exercises loaded from Firestore
+        let userId = null;
+        let isAuthReady = false;
 
-        // ** REPLACE THIS WITH YOUR LOGO'S BASE64 STRING **
-        const YOUR_LOGO_BASE64_STRING_HERE = ''; // Example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
-        if (!YOUR_LOGO_BASE64_STRING_HERE) {
-            console.warn("ATENÇÃO: A string Base64 do seu logo para o PDF está vazia. O PDF será gerado sem logo.");
-        }
+        // Global variables for PDF content
+        let treinoGeradoConteudoHTML = "";
+        let treinoGeradoConteudoParaPDF = {};
 
-
-        const aquecimentos = {
-            "Geral": [
-                "5-10 minutos de cardio leve (esteira, bicicleta, elíptico)",
-                "Mobilidade articular (círculos com braços, rotação de tronco, flexão de quadril)",
-                "Alongamento dinâmico (leg swings, arm circles)"
-            ],
-            "Peito": [
-                "Rotação de ombros",
-                "Flexões de braço leves (em joelhos se necessário)",
-                "Alongamento de peitoral na parede"
-            ],
-            "Costas": [
-                "Remada baixa com elástico ou peso leve",
-                "Alongamento de grande dorsal",
-                "Ativação escapular"
-            ],
-            "Pernas": [
-                "Agachamento sem peso",
-                "Elevação de joelhos",
-                "Alongamento de isquiotibiais e quadríceps"
-            ],
-            "Glúteos": [
-                "Ponte de glúteos",
-                "Caminhada lateral com faixa elástica",
-                "Alongamento de flexores do quadril"
-            ],
-            "Ombros": [
-                "Círculos com braços pequenos e grandes",
-                "Rotação interna/externa com elástico",
-                "Elevação lateral com peso muito leve"
-            ],
-            "Bíceps": [
-                "Rotação de punhos",
-                "Rosca direta com peso muito leve",
-                "Alongamento suave de bíceps"
-            ],
-            "Tríceps": [
-                "Extensão de tríceps com peso muito leve",
-                "Alongamento de tríceps",
-                "Rotação de ombros"
-            ],
-            "Abdômen": [
-                "Rotação de tronco",
-                "Prancha leve (20-30 segundos)",
-                "Alongamento de cobra"
-            ],
-            "Panturrilhas": [
-                "Elevação de panturrilhas sem peso",
-                "Alongamento de panturrilhas na parede"
-            ],
-            "Lombar": [
-                "Gato-Camelo",
-                "Rotação lombar deitado",
-                "Extensão lombar suave"
-            ]
-        };
-
-        const cardioExercises = {
-            "Iniciante": [
-                { nome: "Caminhada Rápida (30 min)", duracao: 30 },
-                { nome: "Bicicleta Ergométrica (25 min, ritmo moderado)", duracao: 25 },
-                { nome: "Elíptico (25 min, ritmo moderado)", duracao: 25 }
-            ],
-            "Intermediario": [
-                { nome: "Corrida Moderada (20-30 min)", duracao: 20 },
-                { nome: "Natação (25-35 min)", duracao: 25 },
-                { nome: "Escada (20 min, ritmo constante)", duracao: 20 },
-                { nome: "HIIT na esteira (15-20 min, 1:2 trabalho/descanso)", duracao: 15 }
-            ],
-            "Avancado": [
-                { nome: "Corrida Intensa (30-45 min)", duracao: 30 },
-                { nome: "HIIT (15-20 min, 1:1 ou 2:1 trabalho/descanso)", duracao: 15 },
-                { nome: "Pular Corda (20-30 min, variações)", duracao: 20 },
-                { nome: "Remo (25-35 min, alta intensidade)", duracao: 25 }
-            ]
-        };
-
-        const tecnicasExplanations = {
-            "Drop Set": "Após atingir a falha em uma série, diminua o peso em 20-30% e continue até a falha novamente. Repita por 2-3 'quedas' de peso.",
-            "Bi-set": "Realize dois exercícios diferentes para o mesmo grupo muscular (ou grupos musculares sinergistas) um após o outro, sem descanso entre eles. Descanse após ambos.",
-            "Superset": "Realize dois exercícios para grupos musculares ANTAGONISTAS (ex: bíceps e tríceps, peito e costas) um após o outro, sem descanso. Descanse após ambos.",
-            "FST-7": "No final do treino de um grupo muscular, faça 7 séries com 30-45 segundos de descanso entre cada uma, usando um peso moderado para atingir a falha ou próximo dela em cada série.",
-            "Rest-Pause": "Faça uma série até a falha ou perto dela, descanse por 10-20 segundos, e então faça mais algumas repetições com o mesmo peso até a falha novamente. Repita 1-2 vezes."
-        };
-
-        function getSeriesRepeticoes(objetivo, nivel) {
-            let series, reps;
-
-            switch (objetivo) {
-                case "Hipertrofia":
-                    series = Math.floor(Math.random() * 2) + 3; // 3 ou 4 séries
-                    if (nivel === "Iniciante") reps = "10-15";
-                    else if (nivel === "Intermediario") reps = "8-12";
-                    else reps = "6-10";
-                    break;
-                case "Emagrecimento":
-                    series = Math.floor(Math.random() * 2) + 3; // 3 ou 4 séries
-                    if (nivel === "Iniciante") reps = "12-18";
-                    else if (nivel === "Intermediario") reps = "15-20";
-                    else reps = "15-25";
-                    break;
-                case "Resistencia":
-                    series = Math.floor(Math.random() * 2) + 2; // 2 ou 3 séries
-                    if (nivel === "Iniciante") reps = "15-20";
-                    else if (nivel === "Intermediario") reps = "20-30";
-                    else reps = "25-40";
-                    break;
-                default:
-                    series = 3;
-                    reps = "8-12";
-            }
-            return `${series}x${reps}`;
-        }
-
-        function getDescanso(objetivo) {
-            switch (objetivo) {
-                case "Hipertrofia": return "60-90 segundos";
-                case "Emagrecimento": return "30-60 segundos";
-                case "Resistencia": return "30-45 segundos";
-                default: return "60 segundos";
-            }
-        }
-
-        // --- Firebase Firestore Loading ---
-        async function loadExerciciosFromFirestore() {
-            try {
-                const snapshot = await db.collection('exercicios').get();
-                exerciciosDB = snapshot.docs.map(doc => doc.data());
-                console.log(`Carregados ${exerciciosDB.length} exercícios do Firestore.`);
-                // You might want to sort exerciciosDB here if needed
-                if (exerciciosDB.length === 0) {
-                     showModal("Atenção: NENHUM exercício foi encontrado no seu Firestore. Por favor, adicione exercícios à coleção 'exercicios' para o app funcionar corretamente.", 'genericModal');
+        // Use onAuthStateChanged to manage user authentication state
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                isAuthReady = true;
+                console.log("User authenticated:", userId);
+                loadUserData();
+            } else {
+                // If no user is authenticated, try to sign in anonymously
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error during initial authentication:", error);
+                    showModal("Erro ao autenticar. Algumas funcionalidades podem não estar disponíveis.");
                 }
-            } catch (error) {
-                console.error("Erro ao carregar exercícios do Firestore:", error);
-                showModal("Erro ao carregar a lista de exercícios do Firestore. Verifique sua conexão e as regras de segurança do Firestore. (A coleção 'exercicios' precisa ser legível para todos).", 'genericModal');
-                throw error; // Re-throw to be caught by the caller
             }
-        }
-
-        // Initial load for exercises and custom day
-        document.addEventListener('DOMContentLoaded', () => {
-            loadExerciciosFromFirestore().then(() => {
-                // Initial setup for the app, now that exercises are loaded
-                addCustomDay(); // Add one default custom day
-            }).catch(error => {
-                // Error already handled by showModal in loadExerciciosFromFirestore
-            });
         });
 
-        // NO LONGER NEEDED: saveUserData() - no user persistence without login
-        // NO LONGER NEEDED: loadUserData() - no user persistence without login
 
-        function displayGeneratedTrainingPlan() {
-            let treinoOutputHTML = '';
-            // Reset treinoGeradoConteudoParaPDF to ensure it reflects current display
-            treinoGeradoConteudoParaPDF = {
-                aluno: document.getElementById('nomeAluno').value,
+        // Helper function to infer equipment from exercise name
+        function inferEquipment(exerciseName) {
+            const lowerName = exerciseName.toLowerCase();
+            if (lowerName.includes("barra fixa") || lowerName.includes("pull-up") || lowerName.includes("chin-up") || lowerName.includes("paralelas")) {
+                return ["Barra Fixa / Paralela"];
+            }
+            if (lowerName.includes("barra") && !lowerName.includes("barra v") && !lowerName.includes("barra t")) { // Exclude specific bar types that are accessories
+                return ["Barra"];
+            }
+            if (lowerName.includes("halteres") || lowerName.includes("halter")) {
+                return ["Halteres"];
+            }
+            if (lowerName.includes("kettlebell")) { // Specific entry for kettlebell
+                return ["Kettlebell"];
+            }
+            if (lowerName.includes("máquina") || lowerName.includes("smith") || lowerName.includes("peck deck") || lowerName.includes("leg press") || lowerName.includes("cadeira extensora") || lowerName.includes("mesa flexora") || lowerName.includes("hack") || lowerName.includes("cadeira abdutora") || lowerName.includes("supino guiado") || lowerName.includes("remada máquina articulada") || lowerName.includes("elevação na máquina específica") || lowerName.includes("panturrilha no hack")) {
+                return ["Máquina"];
+            }
+            if (lowerName.includes("cabo") || lowerName.includes("cross-over") || lowerName.includes("polia") || lowerName.includes("crossover") || lowerName.includes("face pull") || lowerName.includes("remada em pé no cross") || lowerName.includes("kickback no cross") || lowerName.includes("panturrilha no crossover")) { // Specific entry for cables
+                return ["Cabos"];
+            }
+            if (lowerName.includes("solo") || lowerName.includes("braço") || lowerName.includes("pés") || lowerName.includes("banco") || lowerName.includes("pistol squat") || lowerName.includes("flexão") || lowerName.includes("prancha") || lowerName.includes("abdominal") || lowerName.includes("roda abdominal") || lowerName.includes("ab wheel") || lowerName.includes("caneleira") || lowerName.includes("glute bridge") || lowerName.includes("ponte") || lowerName.includes("wall sit") || lowerName.includes("flexão nórdica") || lowerName.includes("corrida ao ar livre") || lowerName.includes("caminhada acelerada") || lowerName.includes("polichinelo") || lowerName.includes("corrida estacionária") || lowerName.includes("corrida com joelhos altos") || lowerName.includes("corrida com calcanhar no glúteo") || lowerName.includes("pular corda") || lowerName.includes("jump") || lowerName.includes("escalador") || lowerName.includes("burpees") || lowerName.includes("sprints") || lowerName.includes("escada de agilidade") || lowerName.includes("saltos pliométricos") || lowerName.includes("dança aeróbica")) {
+                return ["Peso Corporal"];
+            }
+            if (lowerName.includes("elástico") || lowerName.includes("trx") || lowerName.includes("faixa elástica")) {
+                return ["Faixa Elástica"];
+            }
+            if (lowerName.includes("bola suíça") || lowerName.includes("bola medicinal") || lowerName.includes("rolo")) {
+                return ["Outros Acessórios"];
+            }
+            if (lowerName.includes("esteira") || lowerName.includes("bicicleta") || lowerName.includes("spinning") || lowerName.includes("escadas")) {
+                return ["Máquina de Cardio"];
+            }
+            // Fallback for exercises that don't clearly imply equipment
+            return ["Diversos"];
+        }
+
+        // Helper to determine exercise difficulty (new function)
+        function determineDifficulty(exerciseName, group) {
+            const lowerName = exerciseName.toLowerCase();
+
+            if (group === "Cardio") {
+                if (lowerName.includes("caminhada") || lowerName.includes("polichinelo") || lowerName.includes("corrida estacionária") || lowerName.includes("bicicleta ergométrica")) {
+                    return "Iniciante";
+                }
+                if (lowerName.includes("corrida na esteira") || lowerName.includes("subir escadas") || lowerName.includes("pular corda") || lowerName.includes("jump") || lowerName.includes("escalador") || lowerName.includes("bicicleta spinning")) {
+                    return "Intermediario";
+                }
+                if (lowerName.includes("sprints") || lowerName.includes("burpees") || lowerName.includes("hiit") || lowerName.includes("saltos pliométricos") || lowerName.includes("dança aeróbica") || lowerName.includes("escada de agilidade")) {
+                    return "Avancado";
+                }
+                return "Intermediario"; // Default for cardio if not specific
+            }
+
+            // Existing logic for strength exercises (refined)
+            // Iniciante keywords
+            if (lowerName.includes("máquina") || lowerName.includes("sentado") || lowerName.includes("guiado") || lowerName.includes("colchonete") || lowerName.includes("solo") || lowerName.includes("banco") || lowerName.includes("elástico") || lowerName.includes("step (peso corporal)") || lowerName.includes("wall sit") || lowerName.includes("cadeira abdutora") || lowerName.includes("mesa flexora") || lowerName.includes("cadeira extensora") || lowerName.includes("voador") || lowerName.includes("crucifixo na máquina") || lowerName.includes("remada sentado no cabo") || lowerName.includes("tríceps na máquina") || lowerName.includes("flexão de braço tradicional") || lowerName.includes("abdominal tradicional no solo") || lowerName.includes("prancha isométrica") || lowerName.includes("glute bridge no solo") || lowerName.includes("elevação plantar em pé") || lowerName.includes("encolhimento com halteres")) {
+                return "Iniciante";
+            }
+            // Avançado keywords
+            if (lowerName.includes("livre") || (lowerName.includes("barra") && !lowerName.includes("máquina") && !lowerName.includes("smith") && !lowerName.includes("barra w") && !lowerName.includes("barra t")) || (lowerName.includes("halteres") && !lowerName.includes("máquina")) || lowerName.includes("pistol squat") || lowerName.includes("handstand push-up") || lowerName.includes("dragon flag") || lowerName.includes("levantamento terra") || lowerName.includes("push press") || lowerName.includes("arnold press") || lowerName.includes("flexão nórdica") || lowerName.includes("paralelas") || lowerName.includes("agachamento hack") || lowerName.includes("agachamento búlgaro") || lowerName.includes("barra fixa") || lowerName.includes("remada curvada") || lowerName.includes("stiff") || lowerName.includes("hip thrust") || lowerName.includes("abdominal infra na barra") || lowerName.includes("abdominal com rolo") || lowerName.includes("abdominal canivete") || lowerName.includes("abdominal com elevação de quadril") || lowerName.includes("remada cavalinho") || lowerName.includes("encolhimento com barra hexagonal") || lowerName.includes("encolhimento isométrico") || lowerName.includes("tríceps testa") || lowerName.includes("tríceps francês") || lowerName.includes("flexora unilateral")) {
+                return "Avancado";
+            }
+            // Default to Intermediario
+            return "Intermediario";
+        }
+
+
+        // Função para analisar os dados brutos e estruturá-los
+        function parseAndStructureExercises(rawData) {
+            const lines = rawData.trim().split('\n');
+            const strengthExercises = {
+                "Peito": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Costas": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Glúteos": { "Iniciante": [], "Intermediario": [], "Avancado": [] }, // Separado
+                "Posterior de Coxa": { "Iniciante": [], "Intermediario": [], "Avancado": [] }, // Separado
+                "Ombro": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Bíceps": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Tríceps": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Quadríceps": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Panturrilha": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Abdômen": { "Iniciante": [], "Intermediario": [], "Avancado": [] },
+                "Trapézio": { "Iniciante": [], "Intermediario": [], "Avancado": [] } // Novo grupo adicionado
+            };
+
+            const cardioExercises = {
+                "Iniciante": [],
+                "Intermediario": [],
+                "Avancado": []
+            };
+
+            const allGroupsMap = {
+                "PEITO": "Peito",
+                "COSTAS": "Costas",
+                "TRAPÉZIO": "Trapézio", // Mapeamento para o novo grupo
+                "OMBRO": "Ombro",
+                "BÍCEPS": "Bíceps",
+                "TRÍCEPS": "Tríceps",
+                "QUADRÍCEPS": "Quadríceps",
+                "POSTERIOR DE COXA": "Posterior de Coxa",
+                "GLÚTEOS": "Glúteos",
+                "PANTURRILHAS": "Panturrilha",
+                "ABDÔMEN": "Abdômen",
+                "CARDIO / CONDICIONAMENTO": "Cardio" // Mapeamento para exercícios de cardio
+            };
+            let currentGroup = "";
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue; // Ignora linhas vazias
+
+                // Verifica se a linha é um cabeçalho de grupo muscular ou cardio
+                const mappedGroup = allGroupsMap[trimmedLine.toUpperCase()];
+                if (mappedGroup) {
+                    currentGroup = mappedGroup;
+                } else if (currentGroup) {
+                    const exerciseName = trimmedLine;
+                    const equipment = inferEquipment(exerciseName);
+                    const instructions = "";
+                    const difficulty = determineDifficulty(exerciseName, currentGroup); // Passa o grupo para ajudar na determinação da dificuldade
+                    let genderSpecific = null; // Default to null (not gender specific)
+
+                    // Set gender specificity for specific exercises
+                    if (exerciseName === "Glúteo no step com halteres" ||
+                        exerciseName === "Glúteo quatro apoios com caneleira" ||
+                        exerciseName === "Glúteo no cross (coice)") {
+                        genderSpecific = "Feminino";
+                    }
+
+                    if (currentGroup === "Cardio") {
+                        cardioExercises[difficulty].push({
+                            nome: exerciseName,
+                            difficulty: difficulty
+                        });
+                    } else if (strengthExercises[currentGroup]) {
+                        // Adiciona o exercício a todos os níveis do grupo de força
+                        strengthExercises[currentGroup]["Iniciante"].push({ nome: exerciseName, grupoPrimario: currentGroup, equipamento: equipment, instrucoes: instructions, difficulty: difficulty, genderSpecific: genderSpecific });
+                        strengthExercises[currentGroup]["Intermediario"].push({ nome: exerciseName, grupoPrimario: currentGroup, equipamento: equipment, instrucoes: instructions, difficulty: difficulty, genderSpecific: genderSpecific });
+                        strengthExercises[currentGroup]["Avancado"].push({ nome: exerciseName, grupoPrimario: currentGroup, equipamento: equipment, instrucoes: instructions, difficulty: difficulty, genderSpecific: genderSpecific });
+                    } else {
+                        console.warn(`Grupo muscular não reconhecido ou mapeado incorretamente para o exercício "${exerciseName}": ${currentGroup}`);
+                    }
+                }
+            }
+            return { strengthExercises, cardioExercises };
+        }
+
+        // Updated raw exercise data based on user's last input
+        const rawExerciseData = `
+PEITO
+Supino reto com barra
+Supino reto com halteres
+Supino reto na máquina
+Supino inclinado com barra
+Supino inclinado com halteres
+Supino inclinado na máquina
+Supino declinado com barra
+Supino declinado com halteres
+Supino declinado na máquina
+Crucifixo reto com halteres
+Crucifixo inclinado com halteres
+Crucifixo reto na máquina
+Crucifixo inclinado na máquina
+Crossover no cross alto
+Crossover no cross baixo
+Flexão de braço tradicional
+Flexão com apoio elevado
+Flexão com pegada fechada
+Flexão no solo com palmas
+Flexão na barra paralela
+COSTAS
+Remada curvada com barra
+Remada unilateral com halteres
+Remada curvada com halteres
+Remada cavalinho (T-bar)
+Remada baixa no cross
+Puxada frontal na polia
+Puxada supinada na polia
+Puxada com triangulo
+Puxada com barra aberta
+Pullover com halteres
+Remada na máquina articulada
+Remada unilateral no cross
+Remada alta no cross
+Face pull
+Barra fixa aberta
+Barra fixa supinada
+Barra fixa neutra
+TRAPÉZIO
+Encolhimento com halteres
+Encolhimento com barra
+Encolhimento com barra atrás
+Encolhimento no smith
+Encolhimento unilateral com halteres
+Encolhimento com barra hexagonal
+Encolhimento isométrico com barra
+Encolhimento com kettlebell
+Remada alta
+OMBRO
+Elevação lateral com halteres
+Elevação lateral na máquina
+Elevação lateral no cross
+Elevação frontal com halteres
+Elevação frontal no cross
+Desenvolvimento com barra
+Desenvolvimento com halteres
+Desenvolvimento na máquina
+Arnold press
+Elevação lateral inclinada (deltoide posterior)
+Crucifixo invertido com halteres
+Crucifixo invertido no cross
+Remada alta com barra
+Remada alta com halteres
+Remada alta no cross
+Desenvolvimento no smith
+BÍCEPS
+Rosca direta com barra
+Rosca direta com halteres
+Rosca alternada com halteres
+Rosca concentrada
+Rosca martelo com halteres
+Rosca martelo com corda no cross
+Rosca scott com barra
+Rosca scott com halteres
+Rosca scott na máquina
+Rosca 21 com barra
+Rosca no cross com barra reta
+Rosca no cross com barra W
+Rosca no cross com corda
+Rosca inclinada com halteres
+Rosca spider (banco inclinado)
+Rosca unilateral com halteres
+Rosca inversa com barra
+TRÍCEPS
+Tríceps testa com barra
+Tríceps testa com halteres
+Tríceps coice unilateral com halteres
+Tríceps francês com halteres
+Tríceps francês com barra
+Tríceps corda no cross
+Tríceps barra reta no cross
+Tríceps na polia com barra V
+Tríceps banco (paralelas)
+Tríceps na máquina
+Tríceps unilateral no cross
+Tríceps kickback com halteres
+QUADRÍCEPS
+Agachamento livre com barra
+Agachamento frontal com barra
+Agachamento no smith
+Agachamento hack
+Cadeira extensora
+Leg press 45°
+Leg press horizontal
+Leg press unilateral
+Afundo com barra
+Afundo com halteres
+Avanço (passada) com halteres
+Avanço com barra
+Agachamento búlgaro com halteres
+Agachamento búlgaro no smith
+Step-up com halteres
+Agachamento sumô com halteres
+POSTERIOR DE COXA
+Mesa flexora
+Flexora unilateral
+Stiff com barra
+Stiff com halteres
+Stiff unilateral com halteres
+Stiff no smith
+Levantamento terra com barra
+Flexora em pé (máquina)
+Flexora sentado (máquina)
+GLÚTEOS
+Glúteo no cross (coice)
+Elevação pélvica com barra
+Elevação pélvica no banco
+Glúteo quatro apoios com caneleira
+Glúteo máquina
+Glúteo no step com halteres
+Agachamento sumô com halteres
+Avanço com ênfase em glúteo
+Stiff com halteres com ênfase em glúteo
+Cadeira abdutora
+PANTURRILHAS
+Elevação de panturrilha em pé
+Elevação de panturrilha no leg press
+Elevação de panturrilha sentado
+Elevação com halteres (unilateral)
+Elevação na máquina
+Elevação com barra nas costas
+ABDÔMEN
+Abdominal supra no solo
+Abdominal supra no banco declinado
+Abdominal infra com elevação de pernas
+Abdominal infra no banco
+Prancha isométrica
+Abdominal com polia alta (corda)
+Abdominal com rolinho
+Abdominal lateral (oblíquos)
+Abdominal oblíquo com halteres
+Abdominal bicicleta
+Elevação de pernas na barra
+Elevação de pernas na paralela
+CARDIO / CONDICIONAMENTO
+Caminhada
+Corrida
+Bicicleta ergométrica
+Subida em escada
+Escada ergométrica
+Pular corda
+Elíptico
+Remada ergométrica
+Circuito funcional
+HIIT (corrida)
+HIIT (corda)
+HIIT com pesos leves
+Air Bike
+Polichinelo
+Burpee
+Agachamento com salto
+Corrida estacionária
+Sprint (tiros curtos)
+Escalador (mountain climber)
+Shadow boxing
+`;
+
+        const { strengthExercises, cardioExercises } = parseAndStructureExercises(rawExerciseData);
+        const bancoDeExercicios = strengthExercises; // Mantém o nome para compatibilidade com o código existente
+
+
+        const aquecimentoAlongamento = {
+            "Aquecimento Geral (5-10 minutos)": [
+                "Polichinelos (2 min)",
+                "Rotação de braços para frente e para trás (1 min)",
+                "Rotação de tronco suave (1 min)",
+                "Agachamento com peso corporal (10-15 reps)",
+                "Elevação de joelhos (1 min)",
+                "Calcanhares nos glúteos (1 min)",
+                "Alongamento dinâmico de pernas (balanços frontais e laterais) - 2 min",
+                "Caminhada com elevação de pernas (1 min)",
+                "Rotação de tornozelos (30s cada)",
+                "Ponte de glúteos (10-15 reps)"
+            ],
+            "Desaquecimento / Alongamento (5-10 minutos)": [
+                "Caminhada leve ou bicicleta ergométrica (2 min)",
+                "Alongamento estático de isquiotibiais (30s cada perna)",
+                "Alongamento estático de quadríceps (30s cada perna)",
+                "Alongamento estático de peito (30s)",
+                "Alongamento estático de costas (30s)",
+                "Alongamento estático de ombros (30s cada lado)",
+                "Alongamento de tríceps (30s cada braço)",
+                "Alongamento de bíceps (30s cada braço)",
+                "Alongamento de panturrilhas (30s cada perna)",
+                "Alongamento de glúteos (30s cada lado)",
+                "Alongamento de abdômen (cobra stretch) (30s)"
+            ]
+        };
+
+        // Global variable to store the generated training plan in a structured way for editing and PDF
+        let generatedTrainingPlan = []; // Array of { dayLabel: 'A', muscleGroups: ['Peito'], exercises: [] }
+
+        // Variables for managing custom days
+        let dayCounter = 0; // To generate IDs and labels (Dia A, Dia B...)
+        const muscleGroupOptions = Object.keys(bancoDeExercicios); // List of valid muscle groups
+
+        // Modal state for editing exercises
+        let currentEditExerciseIndex = -1;
+        let currentEditDayIndex = -1;
+
+        // Explanations for advanced techniques
+        const tecnicasExplanations = {
+            "Drop set": "Após a falha muscular em uma série, reduza o peso (geralmente 20-50%) e continue as repetições até a nova falha, sem descanso. Pode ser feito várias vezes em sequência.",
+            "Pirâmide": "Aumente o peso e diminua as repetições a cada série (pirâmide crescente) ou diminua o peso e aumente as repetições (pirâmide decrescente).",
+            "Superset": "Execute dois exercícios diferentes para músculos antagonistas (ex: bíceps e tríceps) ou para o mesmo grupo muscular (ex: dois exercícios de peito) consecutivamente, sem descanso entre eles.",
+            "Rest-pause": "Faça uma série até a falha muscular, descanse por um curto período (10-20 segundos) e continue com mais algumas repetições, repetindo 1-2 vezes.",
+            "FST-7": "No último exercício de um grupo muscular, faça 7 séries com 30-45 segundos de descanso entre elas, focando na contração máxima e no alongamento do músculo.",
+            "Bi-set": "Semelhante ao superset, mas geralmente focado em dois exercícios para o mesmo grupo muscular ou músculos sinergistas, realizados consecutivamente.",
+            "Cluster set": "Divida as repetições de uma série em mini-séries com curtos períodos de descanso (10-20 segundos) entre elas, permitindo usar mais peso ou realizar mais repetições totais.",
+            "Myo-reps": "Faça uma série inicial até a falha, descanse 10-20 segundos e então faça mini-séries de 3-5 repetições com o mesmo peso, com o mínimo de descanso, até atingir o número total de repetições desejado."
+        };
+
+        // Function to show modal messages
+        function showModal(message, showEditForm = false, showAddForm = false, onConfirm = null, onCancel = null) {
+            const modal = document.getElementById('myModal');
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('editExerciseForm').style.display = showEditForm ? 'block' : 'none';
+            document.getElementById('addExerciseToDayForm').style.display = showAddForm ? 'block' : 'none';
+            
+            // Remove any existing confirmation/cancel buttons before adding new ones
+            const modalContent = document.querySelector('#myModal .modal-content');
+            const existingConfirmBtn = modalContent.querySelector('.modal-confirm-btn');
+            const existingCancelBtn = modalContent.querySelector('.modal-cancel-btn');
+            if (existingConfirmBtn) existingConfirmBtn.remove();
+            if (existingCancelBtn) existingCancelBtn.remove();
+
+            if (onConfirm) {
+                const confirmBtn = document.createElement('button');
+                confirmBtn.innerText = 'Confirmar';
+                confirmBtn.className = 'modal-confirm-btn';
+                confirmBtn.onclick = () => { if (onConfirm) onConfirm(); closeModal(); };
+                modalContent.appendChild(confirmBtn);
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.innerText = 'Cancelar';
+                cancelBtn.className = 'modal-cancel-btn';
+                cancelBtn.onclick = () => { if (onCancel) onCancel(); closeModal(); };
+                modalContent.appendChild(cancelBtn);
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        // Function to close modal
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+            document.getElementById('modalMessage').innerText = '';
+            document.getElementById('editExerciseForm').style.display = 'none';
+            document.getElementById('addExerciseToDayForm').style.display = 'none';
+            currentEditExerciseIndex = -1;
+            currentEditDayIndex = -1;
+            // Remove dynamically added buttons
+            const modalContent = document.querySelector('#myModal .modal-content');
+            const existingConfirmBtn = modalContent.querySelector('.modal-confirm-btn');
+            const existingCancelBtn = modalContent.querySelector('.modal-cancel-btn');
+            if (existingConfirmBtn) existingConfirmBtn.remove();
+            if (existingCancelBtn) existingCancelBtn.remove();
+        }
+
+        // Function to save user data to Firestore
+        async function saveUserData() {
+            if (!userId || !isAuthReady) {
+                console.log("User not authenticated or auth not ready. Cannot save data.");
+                return;
+            }
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'userData');
+            const userProfile = {
+                nomeAluno: document.getElementById('nomeAluno').value,
                 idade: document.getElementById('idade').value,
                 peso: document.getElementById('peso').value,
                 altura: document.getElementById('altura').value,
                 sexo: document.getElementById('sexo').value,
                 nivel: document.getElementById('nivel').value,
                 objetivo: document.getElementById('objetivo').value,
-                tecnicas: Array.from(document.querySelectorAll('#tecnicas input[type="checkbox"]:checked')).map(cb => cb.value),
-                observacoes: document.getElementById('observacoes').value,
-                dias: []
+                observacoesGerais: document.getElementById('observacoesGerais').value,
+                // Capture custom day configurations
+                customDays: Array.from(document.querySelectorAll('.custom-day-entry')).map(dayDiv => {
+                    const dayId = dayDiv.id;
+                    const selectedMuscles = Array.from(dayDiv.querySelectorAll(`input[name="${dayId}_group_checkbox"]:checked`)).map(cb => cb.value);
+                    return { id: dayId, muscles: selectedMuscles };
+                }),
+                // Capture optional exercises and advanced techniques
+                optionalExercises: Array.from(document.querySelectorAll('.optional-exercise:checked')).map(cb => cb.value),
+                tecnicasAvancadas: Array.from(document.querySelectorAll('.tecnica-avancada:checked')).map(cb => cb.value),
+                // Save the generated training plan for persistence
+                generatedTrainingPlan: JSON.stringify(generatedTrainingPlan)
             };
+            try {
+                await setDoc(userDocRef, userProfile);
+                console.log("User data saved successfully!");
+                // showModal("Dados salvos com sucesso!"); // Optional: show success message
+            }
+             catch (e) {
+                console.error("Error saving document: ", e);
+                showModal("Erro ao salvar dados. Por favor, tente novamente.");
+            }
+        }
 
-            if (generatedTrainingPlan.length === 0) {
-                document.getElementById('resultado').innerHTML = "<p class='text-gray-400'>Nenhum treino gerado ainda. Preencha os dados e clique em 'Gerar Treino'.</p>";
+        // Function to load user data from Firestore
+        async function loadUserData() {
+            if (!userId || !isAuthReady) {
+                console.log("User not authenticated or auth not ready. Cannot load data.");
                 return;
             }
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile`, 'userData');
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('nomeAluno').value = data.nomeAluno || '';
+                    document.getElementById('idade').value = data.idade || '';
+                    document.getElementById('peso').value = data.peso || '';
+                    document.getElementById('altura').value = data.altura || '';
+                    document.getElementById('sexo').value = data.sexo || '';
+                    document.getElementById('nivel').value = data.nivel || '';
+                    document.getElementById('objetivo').value = data.objetivo || '';
+                    document.getElementById('observacoesGerais').value = data.observacoesGerais || '';
 
-            generatedTrainingPlan.forEach(day => {
-                treinoOutputHTML += `<h3 class="text-xl font-bold mb-3 mt-6 text-orange-400">Dia ${day.dayLabel}: Treino de ${day.muscleGroups.join(' + ')}</h3>\n`;
-                
-                const selectedWarmup = getWarmup(day.muscleGroups);
-                treinoOutputHTML += `<p class="font-semibold mt-4">Aquecimento Geral (5-10 min):</p>\n<ul class="list-disc list-inside ml-4 mb-4">`;
-                selectedWarmup.forEach(item => {
-                    treinoOutputHTML += `<li>${item}</li>`;
-                });
-                treinoOutputHTML += `</ul>`;
-
-                const exercisesForPdfTable = [];
-
-                if (day.exercises.length === 0) {
-                    treinoOutputHTML += `<p class="text-red-300">Não foi possível gerar exercícios para o Dia ${day.dayLabel}. Por favor, verifique a sua seleção de grupos musculares, opções de equipamentos e nível de treino para garantir que há exercícios disponíveis.</p>\n`;
-                    exercisesForPdfTable.push({
-                        nome: `Não foi possível gerar exercícios para este dia.`,
-                        equipamento: "",
-                        execucao: "Verifique a configuração.",
-                        descanso: "",
-                        tecnica: ""
-                    });
-                } else {
-                    let currentDayHtmlExercises = [];
-                    day.exercises.forEach((exercicio, index) => {
-                        const execucaoText = `${exercicio.series}x${exercicio.reps}`;
-                        const descansoText = `${exercicio.descanso} segundos`;
-                        const tecnicaText = exercicio.tecnica ? ` | Técnica: ${exercicio.tecnica}` : '';
-                        
-                        currentDayHtmlExercises.push(`
-                            <li class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-600 p-3 rounded-md mb-2">
-                                <div>
-                                    <strong class="text-yellow-300">${exercicio.nome}</strong> <span class="text-sm text-gray-300">(${exercicio.equipamento})</span> - ${execucaoText} ${tecnicaText}
-                                </div>
-                                <div class="flex gap-2 mt-2 sm:mt-0">
-                                    <button onclick="openEditExerciseModal('${day.dayLabel}', ${index})" class="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded">Editar</button>
-                                    <button class="remove bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2 rounded" onclick="removeExerciseFromGeneratedPlan('${day.dayLabel}', ${index})">Remover</button>
-                                </div>
-                            </li>
-                        `);
-
-                        exercisesForPdfTable.push({
-                            nome: exercicio.nome,
-                            equipamento: exercicio.equipamento,
-                            execucao: execucaoText,
-                            descanso: descansoText,
-                            tecnica: exercicio.tecnica || '-'
+                    // Load custom days
+                    const customDivisionsContainer = document.getElementById('customDivisionsContainer');
+                    customDivisionsContainer.innerHTML = ''; // Clear existing days
+                    dayCounter = 0; // Reset counter
+                    if (data.customDays && data.customDays.length > 0) {
+                        data.customDays.forEach(dayData => {
+                            addCustomDay(false); // Add a new day structure without saving immediately
+                            const currentDayDiv = document.getElementById(`custom_day_${dayCounter - 1}`); // Get the newly added day
+                            if (currentDayDiv) {
+                                dayData.muscles.forEach(muscle => {
+                                    const checkbox = currentDayDiv.querySelector(`input[value="${muscle}"]`);
+                                    if (checkbox) checkbox.checked = true;
+                                });
+                            }
                         });
-                    });
-                    treinoOutputHTML += `<p class="font-semibold mt-4">💪 Treino de Força:</p><ul class="mb-4">${currentDayHtmlExercises.join('\n')}</ul>`;
-                }
-                
-                treinoOutputHTML += `<button onclick="openAddExerciseToDayModal('${day.dayLabel}')" class="py-2 px-4 rounded-lg text-white font-bold text-base bg-blue-600 hover:bg-blue-700 mt-2">Adicionar Exercício Manualmente</button>`;
-
-
-                const currentDayPdfData = {
-                    dayName: day.dayLabel,
-                    groups: day.muscleGroups,
-                    warmup: selectedWarmup,
-                    exercises: exercisesForPdfTable,
-                    cardio: day.cardio,
-                };
-                treinoGeradoConteudoParaPDF.dias.push(currentDayPdfData);
-
-
-                if (day.cardio) {
-                    treinoOutputHTML += `<p class="font-semibold mt-4">🏃 Cardio: <span class="font-normal">${day.cardio}</span></p>\n`;
-                } else {
-                     treinoOutputHTML += `<p class="text-gray-400 font-semibold mt-4">🏃 Cardio: <span class="font-normal">Nenhum exercício de cardio gerado para este dia.</span></p>\n`;
-                }
-
-                treinoOutputHTML += `\n<hr class="my-6 border-gray-500">\n`;
-            });
-            document.getElementById('resultado').innerHTML = treinoOutputHTML;
-        }
-
-        // --- Modal Functions ---
-        function showModal(message, modalId = 'genericModal') {
-            document.getElementById('modalMessage').innerText = message;
-            document.getElementById(modalId).style.display = 'flex';
-        }
-
-        function closeModal(modalId = 'genericModal') {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        let currentEditDayLabel = '';
-        let currentEditExerciseIndex = -1;
-
-        function openEditExerciseModal(dayLabel, exerciseIndex) {
-            currentEditDayLabel = dayLabel;
-            currentEditExerciseIndex = exerciseIndex;
-
-            const day = generatedTrainingPlan.find(d => d.dayLabel === dayLabel);
-            if (day) {
-                const exercise = day.exercises[exerciseIndex];
-                if (exercise) {
-                    document.getElementById('editExName').value = exercise.nome;
-                    document.getElementById('editExSetsReps').value = `${exercise.series}x${exercise.reps}`;
-                    document.getElementById('editExRest').value = exercise.descanso;
-                    document.getElementById('editExTechnique').value = exercise.tecnica || '';
-                    showModal('', 'editExerciseModal');
-                } else {
-                    showModal("Erro: Exercício não encontrado para edição.", 'genericModal');
-                }
-            } else {
-                showModal("Erro: Dia de treino não encontrado para edição.", 'genericModal');
-            }
-        }
-
-        function saveEditedExercise() {
-            if (currentEditDayLabel && currentEditExerciseIndex !== -1) {
-                const day = generatedTrainingPlan.find(d => d.dayLabel === currentEditDayLabel);
-                if (day) {
-                    const exercise = day.exercises[currentEditExerciseIndex];
-                    if (exercise) {
-                        const newName = document.getElementById('editExName').value;
-                        const setsReps = document.getElementById('editExSetsReps').value.split('x');
-                        const newRest = parseInt(document.getElementById('editExRest').value);
-                        const newTechnique = document.getElementById('editExTechnique').value;
-
-                        if (!newName || setsReps.length !== 2 || isNaN(parseInt(setsReps[0])) || isNaN(newRest)) {
-                            showModal("Por favor, preencha todos os campos corretamente (Séries/Repetições como 'NxM', Descanso como número).");
-                            return;
-                        }
-
-                        exercise.nome = newName;
-                        exercise.series = parseInt(setsReps[0]);
-                        exercise.reps = setsReps[1].trim();
-                        exercise.descanso = newRest;
-                        exercise.tecnica = newTechnique;
-                        
-                        displayGeneratedTrainingPlan();
-                        // NO LONGER NEEDED: saveUserData();
-                        showModal("Exercício atualizado com sucesso!", 'genericModal');
-                        closeModal('editExerciseModal');
-                    }
-                }
-            }
-        }
-
-        function removeExerciseFromGeneratedPlan(dayLabel, exerciseIndex) {
-            const day = generatedTrainingPlan.find(d => d.dayLabel === dayLabel);
-            if (day) {
-                const removedExercise = day.exercises.splice(exerciseIndex, 1)[0];
-
-                if (removedExercise.tecnica === 'Bi-set' || removedExercise.tecnica === 'Superset') {
-                    let pairedIndex = -1;
-                    if (removedExercise.nome.includes('(Conjugado com')) {
-                        const originalName = removedExercise.nome.match(/\(Conjugado com (.*?)\)/);
-                        if (originalName && originalName[1]) {
-                            pairedIndex = day.exercises.findIndex(ex => ex.nome === originalName[1] && (ex.tecnica === 'Bi-set' || ex.tecnica === 'Superset'));
-                        }
-                    } else if (removedExercise.pairedExercise) {
-                        const pairedName = removedExercise.pairedExercise.nome;
-                        pairedIndex = day.exercises.findIndex(ex => ex.nome.includes(`(Conjugado com ${removedExercise.nome})`));
-                    }
-                    
-                    if (pairedIndex !== -1) {
-                        day.exercises.splice(pairedIndex, 1);
-                        showModal("Exercício e seu par removidos com sucesso!", 'genericModal');
                     } else {
-                        showModal("Exercício removido com sucesso!", 'genericModal');
+                        addCustomDay(false); // Add at least one custom day if none saved
                     }
+
+                    // Load optional exercises and advanced techniques
+                    document.querySelectorAll('.optional-exercise').forEach(cb => cb.checked = false);
+                    if (data.optionalExercises) {
+                        data.optionalExercises.forEach(ex => {
+                            const checkbox = document.getElementById(`include${ex.replace(/\s/g, '')}`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+                    document.querySelectorAll('.tecnica-avancada').forEach(cb => cb.checked = false);
+                    if (data.tecnicasAvancadas) {
+                        data.tecnicasAvancadas.forEach(tech => {
+                            const checkbox = document.querySelector(`.tecnica-avancada[value="${tech}"]`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+
+                    // Load generated training plan
+                    if (data.generatedTrainingPlan) {
+                        generatedTrainingPlan = JSON.parse(data.generatedTrainingPlan);
+                        renderGeneratedTrainingPlan();
+                    }
+                    console.log("User data loaded successfully!");
                 } else {
-                    showModal("Exercício removido com sucesso!", 'genericModal');
+                    console.log("No user data found. Adding a default custom day.");
+                    addCustomDay(false); // Add a default custom day if no data exists
                 }
-                
-                displayGeneratedTrainingPlan();
-                // NO LONGER NEEDED: saveUserData();
+            } catch (e) {
+                console.error("Error loading document: ", e);
+                showModal("Erro ao carregar dados. Por favor, recarregue a página.");
+                addCustomDay(false); // Fallback to adding a default custom day on error
             }
         }
-        
-        let currentAddExerciseDayLabel = '';
-        function openAddExerciseToDayModal(dayLabel) {
-            currentAddExerciseDayLabel = dayLabel;
-            populateAddExSelect();
-            showModal('', 'addExerciseToDayModal');
-        }
 
-        function populateAddExSelect() {
-            const addExMuscleGroupSelect = document.getElementById('addExMuscleGroup');
-            addExMuscleGroupSelect.innerHTML = '<option value="">Selecione um Grupo</option>';
-            // Use exerciciosDB for unique groups
-            const uniqueGroups = [...new Set(exerciciosDB.map(ex => ex.grupoPrimario))].sort();
-            uniqueGroups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group;
-                option.innerText = group;
-                addExMuscleGroupSelect.appendChild(option);
-            });
-            updateAddExerciseGroupOptions();
-        }
+        // Event listeners for input fields to save data on change
+        document.getElementById('nomeAluno').addEventListener('change', saveUserData);
+        document.getElementById('idade').addEventListener('change', saveUserData);
+        document.getElementById('peso').addEventListener('change', saveUserData);
+        document.getElementById('altura').addEventListener('change', saveUserData);
+        document.getElementById('sexo').addEventListener('change', saveUserData);
+        document.getElementById('nivel').addEventListener('change', saveUserData);
+        document.getElementById('objetivo').addEventListener('change', saveUserData);
+        document.getElementById('observacoesGerais').addEventListener('change', saveUserData);
+        document.getElementById('customDivisionsContainer').addEventListener('change', saveUserData); // Listen for changes in custom days
+        document.querySelectorAll('.optional-exercise').forEach(cb => cb.addEventListener('change', saveUserData));
+        document.querySelectorAll('.tecnica-avancada').forEach(cb => cb.addEventListener('change', saveUserData));
 
-        function updateAddExerciseGroupOptions() {
-            const selectedGroup = document.getElementById('addExMuscleGroup').value;
-            const addExSelect = document.getElementById('addExSelect');
-            addExSelect.innerHTML = '<option value="">Selecione um Exercício</option>';
-
-            const equipamentosSelecionados = Array.from(document.querySelectorAll('#equipamentos input[type="checkbox"]:checked'))
-                                                .map(cb => cb.value);
-
-            // Filter by selected group and currently available equipment from exerciciosDB
-            const filteredExercises = exerciciosDB.filter(ex =>
-                (selectedGroup === "" || ex.grupoPrimario === selectedGroup) &&
-                equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq) // Handles both array and string
-            );
-
-            filteredExercises.sort((a, b) => a.nome.localeCompare(b.nome));
-
-            filteredExercises.forEach(ex => {
-                const option = document.createElement('option');
-                option.value = ex.nome;
-                option.innerText = `${ex.nome} (${Array.isArray(ex.equipamento) ? ex.equipamento.join(', ') : ex.equipamento})`;
-                addExSelect.appendChild(option);
-            });
-        }
-
-        function addNewExerciseToDay() {
-            const selectedExerciseName = document.getElementById('addExSelect').value;
-            if (!selectedExerciseName) {
-                showModal("Por favor, selecione um exercício para adicionar.");
-                return;
-            }
-
-            const day = generatedTrainingPlan.find(d => d.dayLabel === currentAddExerciseDayLabel);
-            if (!day) {
-                showModal("Erro: Dia de treino não encontrado.");
-                return;
-            }
-
-            // Find the exercise in the loaded database
-            const exerciseToAdd = exerciciosDB.find(ex => ex.nome === selectedExerciseName);
-            if (!exerciseToAdd) {
-                showModal("Erro: Exercício selecionado não encontrado na base de dados (Firestore).");
-                return;
-            }
-
-            const isAlreadyAdded = day.exercises.some(ex => ex.nome.replace(/\s\(Conjugado com.*?\)/, '') === exerciseToAdd.nome);
-            if (isAlreadyAdded) {
-                showModal("Este exercício já foi adicionado a este dia.");
-                return;
-            }
-
-            const nivel = document.getElementById('nivel').value;
-            const objetivo = document.getElementById('objetivo').value;
-
-            const newExerciseEntry = {
-                nome: exerciseToAdd.nome,
-                // Ensure equipment is stored as a string for display consistency
-                equipamento: Array.isArray(exerciseToAdd.equipamento) ? exerciseToAdd.equipamento.join(', ') : exerciseToAdd.equipamento,
-                series: parseInt(getSeriesRepeticoes(objetivo, nivel).split('x')[0]),
-                reps: getSeriesRepeticoes(objetivo, nivel).split('x')[1],
-                descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
-                tecnica: '',
-                pairedExercise: null
-            };
-
-            day.exercises.push(newExerciseEntry);
-            displayGeneratedTrainingPlan();
-            // NO LONGER NEEDED: saveUserData();
-            showModal("Exercício adicionado com sucesso!", 'genericModal');
-            closeModal('addExerciseToDayModal');
-        }
-
-
-        // --- Custom Day Management ---
-        let dayCounter = 0;
-        const allMuscleGroups = ["Peito", "Costas", "Pernas", "Glúteos", "Ombros", "Bíceps", "Tríceps", "Abdômen", "Panturrilhas", "Antebraço", "Trapézio", "Lombar", "Posterior Coxa", "Quadríceps", "Adutores", "Core"];
-
-        function getDayLetter(num) {
-            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-            return letters[num % letters.length];
-        }
-
-        function addCustomDay(dayLabelFromLoad = null, selectedGroupsFromLoad = []) {
-            const container = document.getElementById('customDaysContainer');
-            const dayIndex = dayCounter++;
-
-            const diaLetra = dayLabelFromLoad || getDayLetter(dayIndex);
+        // Função para adicionar um novo dia de treino personalizado
+        function addCustomDay(save = true) {
+            const container = document.getElementById('customDivisionsContainer');
+            const dayId = `custom_day_${dayCounter}`;
+            const dayLabel = String.fromCharCode(65 + dayCounter); // A, B, C...
 
             const dayDiv = document.createElement('div');
-            dayDiv.className = 'custom-day-entry bg-gray-700 p-4 rounded-lg mb-3';
-            dayDiv.setAttribute('data-day-label', diaLetra); 
-
-            let checkboxesHtml = allMuscleGroups.map(group => `
-                <div class="flex items-center">
-                    <input type="checkbox" id="day-${diaLetra}-${group}-${dayIndex}" value="${group}" class="form-checkbox h-5 w-5 text-orange-600" ${selectedGroupsFromLoad.includes(group) ? 'checked' : ''}>
-                    <label for="day-${diaLetra}-${group}-${dayIndex}" class="ml-2 text-base">${group}</label>
-                </div>
+            dayDiv.className = 'custom-day-entry input-group';
+            dayDiv.id = dayId;
+            
+            // Cria os checkboxes para cada grupo muscular
+            let checkboxesHtml = muscleGroupOptions.map(group => `
+                <label>
+                    <input type="checkbox" name="${dayId}_group_checkbox" value="${group}">
+                    ${group}
+                </label>
             `).join('');
 
             dayDiv.innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
-                    <label class="text-lg font-bold">Dia <span class="day-label">${diaLetra}</span>: Grupos Musculares</label>
-                    <button type="button" class="remove-day-btn bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-md text-sm mt-2 sm:mt-0" onclick="removeCustomDay(this, '${diaLetra}')">Remover Dia</button>
-                </div>
-                <div class="flex flex-wrap gap-4">
+                <label>Dia ${dayLabel}: Selecione os Grupos Musculares</label>
+                <div class="checkbox-group muscle-selection-group" id="${dayId}_groups_container">
                     ${checkboxesHtml}
                 </div>
+                <button type="button" class="remove-day-btn" onclick="removeCustomDay('${dayId}')">Remover Dia</button>
             `;
             container.appendChild(dayDiv);
+            dayCounter++;
+            updateDayLabels(); // Atualiza os rótulos após adicionar
+            if (save) saveUserData(); // Save changes after adding a day
         }
 
-        function removeCustomDay(button, dayLabelToRemove) {
-            const dayDiv = button.closest('.custom-day-entry');
-            if (dayDiv) {
-                dayDiv.remove();
-                generatedTrainingPlan = generatedTrainingPlan.filter(day => day.dayLabel !== dayLabelToRemove);
-                displayGeneratedTrainingPlan(); 
-                // NO LONGER NEEDED: saveUserData();
-            }
-        }
-
-        function getWarmup(muscleGroups) {
-            const generalWarmup = [...aquecimentos.Geral];
-            const specificWarmup = new Set();
-
-            muscleGroups.forEach(group => {
-                if (aquecimentos[group]) {
-                    aquecimentos[group].forEach(item => specificWarmup.add(item));
+        // Função para remover um dia de treino personalizado
+        function removeCustomDay(id) {
+            showModal("Tem certeza que deseja remover este dia de treino?", false, false, () => {
+                const dayToRemove = document.getElementById(id);
+                if (dayToRemove) {
+                    dayToRemove.remove();
+                    updateDayLabels(); // Reorganiza os rótulos após remover
+                    saveUserData(); // Save changes after removing a day
                 }
             });
-            return [...generalWarmup, ...Array.from(specificWarmup)];
         }
 
+        // Função para atualizar os rótulos dos dias (A, B, C...) após adicionar/remover
+        function updateDayLabels() {
+            const dayEntries = document.querySelectorAll('.custom-day-entry');
+            dayEntries.forEach((entry, index) => {
+                const labelElement = entry.querySelector('label');
+                const checkboxesContainer = entry.querySelector('.muscle-selection-group');
+                const removeBtn = entry.querySelector('.remove-day-btn');
+
+                const newDayLabel = String.fromCharCode(65 + index);
+                const newDayId = `custom_day_${index}`;
+
+                entry.id = newDayId;
+                labelElement.textContent = `Dia ${newDayLabel}: Selecione os Grupos Musculares`;
+                
+                // Atualiza os nomes dos checkboxes para o novo ID do dia
+                Array.from(checkboxesContainer.querySelectorAll('input[type="checkbox"]')).forEach(checkbox => {
+                    checkbox.name = `${newDayId}_group_checkbox`;
+                });
+
+                removeBtn.setAttribute('onclick', `removeCustomDay('${newDayId}')`);
+            });
+            dayCounter = dayEntries.length; // Garante que o contador esteja correto
+        }
+
+        // Helper function to shuffle an array
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -805,208 +1267,877 @@
             return array;
         }
 
-        function gerarTreino() {
+        // Function to render the generated training plan in the #resultado div
+        function renderGeneratedTrainingPlan() {
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = ''; // Clear previous content
+
             const nomeAluno = document.getElementById('nomeAluno').value;
-            const idade = document.getElementById('idade').value;
-            const peso = document.getElementById('peso').value;
-            const altura = document.getElementById('altura').value;
+            const idade = parseInt(document.getElementById('idade').value);
+            const peso = parseFloat(document.getElementById('peso').value);
+            const altura = parseFloat(document.getElementById('altura').value);
             const sexo = document.getElementById('sexo').value;
             const nivel = document.getElementById('nivel').value;
             const objetivo = document.getElementById('objetivo').value;
-            const observacoes = document.getElementById('observacoes').value;
+            const observacoesGerais = document.getElementById('observacoesGerais').value;
 
-            const equipamentosSelecionados = Array.from(document.querySelectorAll('#equipamentos input[type="checkbox"]:checked'))
-                                                .map(cb => cb.value);
-
-            const tecnicasSelecionadas = Array.from(document.querySelectorAll('#tecnicas input[type="checkbox"]:checked'))
-                                             .map(cb => cb.value);
-
-            if (!nomeAluno || !idade || !peso || !altura || !sexo || !nivel || !objetivo) {
-                showModal("Por favor, preencha todos os campos obrigatórios.");
-                return;
+            // Calculate BMI and ideal weight range
+            const alturaMeters = altura / 100;
+            const imc = peso / (alturaMeters * alturaMeters);
+            let imcClassification = "";
+            if (imc < 18.5) {
+                imcClassification = "Abaixo do peso";
+            } else if (imc >= 18.5 && imc <= 24.9) {
+                imcClassification = "Peso normal";
+            } else if (imc >= 25.0 && imc <= 29.9) {
+                imcClassification = "Sobrepeso";
+            } else {
+                imcClassification = "Obesidade";
             }
-            if (equipamentosSelecionados.length === 0) {
-                showModal("Por favor, selecione pelo menos um equipamento disponível.");
-                return;
-            }
-            if (exerciciosDB.length === 0) {
-                showModal("A lista de exercícios não foi carregada. Verifique sua conexão ou a configuração do Firebase Firestore e se há exercícios na sua coleção 'exercicios'.");
-                return;
+            const minIdealWeight = 18.5 * (alturaMeters ** 2);
+            const maxIdealWeight = 24.9 * (alturaMeters ** 2);
+
+            // Calculate BMR (Taxa Metabólica Basal)
+            let tmb;
+            if (sexo === 'Masculino') {
+                tmb = (10 * peso) + (6.25 * altura) - (5 * idade) + 5;
+            } else {
+                tmb = (10 * peso) + (6.25 * altura) - (5 * idade) - 161;
             }
 
+            // Estimate daily caloric needs based on objective (simplified)
+            let caloriesNeeded;
+            const activityFactor = 1.375; // Lightly active
+            caloriesNeeded = tmb * activityFactor;
 
-            const customDivisionsData = [];
-            let hasSelectedGroups = false;
-            document.querySelectorAll('.custom-day-entry').forEach(dayDiv => {
-                const dayLabel = dayDiv.getAttribute('data-day-label');
-                const selectedGroups = Array.from(dayDiv.querySelectorAll('.checkbox-group input[type="checkbox"]:checked'))
-                                            .map(cb => cb.value);
-                if (selectedGroups.length > 0) {
-                    hasSelectedGroups = true;
-                }
-                customDivisionsData.push({ dayLabel, selectedGroups });
+            if (objetivo === 'Hipertrofia') {
+                caloriesNeeded += 500; // Caloric surplus for muscle gain
+            } else if (objetivo === 'Emagrecimento') {
+                caloriesNeeded -= 500; // Caloric deficit for fat loss
+            }
+
+            let headerHtml = `<h2>Plano de Treino para ${nomeAluno}</h2>`;
+            headerHtml += `<p><strong>Idade:</strong> ${idade} anos</p>`;
+            headerHtml += `<p><strong>Peso:</strong> ${peso} kg</p>`;
+            headerHtml += `<p><strong>Altura:</strong> ${altura} cm</p>`;
+            headerHtml += `<p><strong>Sexo:</strong> ${sexo}</p>`;
+            headerHtml += `<p><strong>Nível:</strong> ${nivel}</p>`;
+            headerHtml += `<p><strong>Objetivo:</strong> ${objetivo}</p>`;
+            headerHtml += `<p><strong>IMC:</strong> ${imc.toFixed(2)} (${imcClassification})</p>`;
+            headerHtml += `<p><strong>Faixa de Peso Ideal:</strong> ${minIdealWeight.toFixed(2)} kg - ${maxIdealWeight.toFixed(2)} kg</p>`;
+            headerHtml += `<p><strong>TMB (Taxa Metabólica Basal):</strong> ${tmb.toFixed(2)} calorias/dia</p>`;
+            headerHtml += `<p><strong>Calorias Estimadas para o Objetivo:</strong> ${caloriesNeeded.toFixed(2)} calorias/dia</p>`;
+            headerHtml += `<br>`;
+            // Removed motivational phrase from HTML output
+            // headerHtml += `<p><strong>Frase Motivacional:</strong> Disciplina é o que transforma intenção em conquista.</p><br>`;
+
+
+            headerHtml += `<h3>Aquecimento:</h3><ul>`;
+            aquecimentoAlongamento["Aquecimento Geral (5-10 minutos)"].forEach(ex => {
+                headerHtml += `<li>${ex}</li>`;
+            });
+            headerHtml += `</ul><br>`;
+
+            resultadoDiv.innerHTML += headerHtml;
+
+            generatedTrainingPlan.forEach((dayPlan, dayIndex) => {
+                const daySection = document.createElement('div');
+                daySection.className = 'generated-day-section';
+                daySection.innerHTML = `<h4>Dia ${dayPlan.dayLabel}: ${dayPlan.muscleGroups.join(', ')}</h4>`;
+                
+                dayPlan.exercises.forEach((ex, exIndex) => {
+                    const exerciseItem = document.createElement('div');
+                    exerciseItem.className = 'generated-exercise-item';
+                    let exerciseText = `<strong>${ex.nome}</strong>: ${ex.series} séries de ${ex.reps} repetições (Descanso: ${ex.descanso}s)`;
+                    if (ex.tecnica) {
+                        exerciseText += ` - Técnica: ${ex.tecnica}`;
+                        if ((ex.tecnica === 'Bi-set' || ex.tecnica === 'Superset') && ex.pairedExercise) {
+                            exerciseText += ` com ${ex.pairedExercise.nome}`;
+                        }
+                    }
+                    exerciseItem.innerHTML = `
+                        <span>${exerciseText}</span>
+                        <div class="actions">
+                            <button class="edit-btn" onclick="openEditExerciseModal(${dayIndex}, ${exIndex})">Editar</button>
+                            <button class="remove-btn" onclick="removeExerciseFromGeneratedPlan(${dayIndex}, ${exIndex})">Remover</button>
+                        </div>
+                    `;
+                    daySection.appendChild(exerciseItem);
+                });
+                resultadoDiv.appendChild(daySection);
             });
 
-            if (!hasSelectedGroups) {
-                showModal("Por favor, selecione os grupos musculares para pelo menos um dia de treino.");
+            const selectedTecnicasAvancadas = Array.from(document.querySelectorAll('.tecnica-avancada:checked')).map(cb => cb.value);
+            if (selectedTecnicasAvancadas.length > 0) {
+                let advancedTechniquesHtml = `<h3>Técnicas Avançadas Incluídas:</h3><ul>`;
+                selectedTecnicasAvancadas.forEach(tech => {
+                    advancedTechniquesHtml += `<li>${tech}</li>`;
+                });
+                advancedTechniquesHtml += `</ul><br>`;
+                resultadoDiv.innerHTML += advancedTechniquesHtml;
+
+                // Add explanations for advanced techniques
+                let explanationsHtml = `<h3>Explicação das Técnicas Avançadas:</h3><ul>`;
+                selectedTecnicasAvancadas.forEach(tech => {
+                    if (tecnicasExplanations[tech]) {
+                        explanationsHtml += `<li><strong>${tech}:</strong> ${tecnicasExplanations[tech]}</li>`;
+                    }
+                });
+                explanationsHtml += `</ul><br>`;
+                resultadoDiv.innerHTML += explanationsHtml;
+            }
+
+            if (observacoesGerais) {
+                resultadoDiv.innerHTML += `<h3>Observações Gerais:</h3><p>${observacoesGerais}</p><br>`;
+            }
+
+            let cooldownHtml = `<h3>Desaquecimento e Alongamento:</h3><ul>`;
+            aquecimentoAlongamento["Desaquecimento / Alongamento (5-10 minutos)"].forEach(ex => {
+                cooldownHtml += `<li>${ex}</li>`;
+            });
+            cooldownHtml += `</ul><br>`;
+            resultadoDiv.innerHTML += cooldownHtml;
+
+            // Store for PDF export
+            treinoGeradoConteudoHTML = resultadoDiv.innerHTML;
+            // treinoGeradoConteudoParaPDF is already populated in gerarTreino
+        }
+
+        // Function to open the edit exercise modal
+        function openEditExerciseModal(dayIndex, exerciseIndex) {
+            currentEditDayIndex = dayIndex;
+            currentEditExerciseIndex = exerciseIndex;
+            const exercise = generatedTrainingPlan[dayIndex].exercises[exerciseIndex];
+
+            document.getElementById('editExNome').value = exercise.nome;
+            document.getElementById('editExSeries').value = exercise.series;
+            document.getElementById('editExReps').value = exercise.reps;
+            document.getElementById('editExDescanso').value = exercise.descanso;
+            document.getElementById('editExTecnica').value = exercise.tecnica || '';
+
+            const editExPairContainer = document.getElementById('editExPairContainer');
+            const editExPairSelect = document.getElementById('editExPair');
+            editExPairSelect.innerHTML = ''; // Clear previous options
+
+            if (exercise.tecnica === 'Bi-set' || exercise.tecnica === 'Superset') {
+                editExPairContainer.style.display = 'block';
+                // Populate dropdown with other exercises from the same day, excluding itself
+                generatedTrainingPlan[dayIndex].exercises.forEach((exInDay, idx) => {
+                    if (idx !== exerciseIndex) {
+                        const option = document.createElement('option');
+                        option.value = idx; // Store index for easy lookup
+                        option.innerText = exInDay.nome;
+                        editExPairSelect.appendChild(option);
+                    }
+                });
+                // Select the currently paired exercise if it exists
+                if (exercise.pairedExercise) {
+                    const pairedIndex = generatedTrainingPlan[dayIndex].exercises.findIndex(ex => ex.nome === exercise.pairedExercise.nome);
+                    if (pairedIndex !== -1) {
+                        editExPairSelect.value = pairedIndex;
+                    }
+                }
+            } else {
+                editExPairContainer.style.display = 'none';
+            }
+
+            showModal("Editar Exercício", true, false);
+        }
+
+        // Function to save edited exercise details
+        function saveEditedExercise() {
+            if (currentEditDayIndex === -1 || currentEditExerciseIndex === -1) return;
+
+            const exercise = generatedTrainingPlan[currentEditDayIndex].exercises[currentEditExerciseIndex];
+            exercise.nome = document.getElementById('editExNome').value;
+            exercise.series = parseInt(document.getElementById('editExSeries').value);
+            exercise.reps = document.getElementById('editExReps').value;
+            exercise.descanso = parseInt(document.getElementById('editExDescanso').value);
+            exercise.tecnica = document.getElementById('editExTecnica').value;
+
+            const editExPairSelect = document.getElementById('editExPair');
+            if (exercise.tecnica === 'Bi-set' || exercise.tecnica === 'Superset') {
+                const pairedIndex = parseInt(editExPairSelect.value);
+                if (!isNaN(pairedIndex) && generatedTrainingPlan[currentEditDayIndex].exercises[pairedIndex]) {
+                    exercise.pairedExercise = generatedTrainingPlan[currentEditDayIndex].exercises[pairedIndex];
+                } else {
+                    exercise.pairedExercise = null; // No valid pair selected
+                }
+            } else {
+                exercise.pairedExercise = null; // Clear paired exercise if technique is not bi-set/superset
+            }
+
+            renderGeneratedTrainingPlan(); // Re-render the plan with updated data
+            saveUserData(); // Save changes to Firestore
+            closeModal();
+        }
+
+        // Function to remove an exercise from the generated plan
+        function removeExerciseFromGeneratedPlan(dayIndex, exerciseIndex) {
+            showModal("Tem certeza que deseja remover este exercício?", false, false, () => {
+                generatedTrainingPlan[dayIndex].exercises.splice(exerciseIndex, 1);
+                renderGeneratedTrainingPlan();
+                saveUserData();
+            });
+        }
+
+        // Function to open the add exercise to day modal
+        function openAddExerciseToDayModal() {
+            const addExDaySelect = document.getElementById('addExDaySelect');
+            addExDaySelect.innerHTML = '';
+            generatedTrainingPlan.forEach((dayPlan, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.innerText = `Dia ${dayPlan.dayLabel}`;
+                addExDaySelect.appendChild(option);
+            });
+
+            // Trigger change to populate groups for the first day by default
+            if (generatedTrainingPlan.length > 0) {
+                addExDaySelect.value = 0; // Select the first day by default
+                updateAddExerciseGroupOptions(); // Populate groups for the first day
+            } else {
+                // If no days are generated yet, show an error
+                showModal("Por favor, gere um treino primeiro para poder adicionar exercícios a um dia.");
+                return;
+            }
+            
+            // Clear exercise select and hide pair container initially
+            document.getElementById('addExSelect').innerHTML = '';
+            document.getElementById('addExPairContainer').style.display = 'none';
+            document.getElementById('addExTecnica').value = ''; // Reset technique
+
+            showModal("Adicionar Exercício ao Dia", false, true);
+        }
+
+        // Function to update the muscle group options based on the selected day in the add exercise modal
+        function updateAddExerciseGroupOptions() {
+            const selectedDayIndex = document.getElementById('addExDaySelect').value;
+            const addExGroupSelect = document.getElementById('addExGroupSelect');
+            addExGroupSelect.innerHTML = '<option value="">Selecione um Grupo</option>';
+
+            if (selectedDayIndex !== "") {
+                const dayPlan = generatedTrainingPlan[selectedDayIndex];
+                dayPlan.muscleGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group;
+                    option.innerText = group;
+                    addExGroupSelect.appendChild(option);
+                });
+            }
+            // Clear exercises when group changes
+            document.getElementById('addExSelect').innerHTML = '';
+        }
+
+
+        // Function to populate the add exercise select based on chosen muscle group
+        function populateAddExSelect(isEditContext = false) {
+            const groupSelect = isEditContext ? document.getElementById('editExGroupSelect') : document.getElementById('addExGroupSelect');
+            const exerciseSelect = isEditContext ? document.getElementById('editExSelect') : document.getElementById('addExSelect');
+            
+            exerciseSelect.innerHTML = ''; // Clear previous options
+            const selectedGroup = groupSelect.value;
+            const nivel = document.getElementById('nivel').value;
+            const sexo = document.getElementById('sexo').value;
+
+            if (selectedGroup) {
+                let availableExercises = [];
+                if (bancoDeExercicios[selectedGroup] && bancoDeExercicios[selectedGroup][nivel]) {
+                    availableExercises = bancoDeExercicios[selectedGroup][nivel].filter(ex => {
+                        // Filter by gender specificity
+                        if (ex.genderSpecific && ex.genderSpecific !== sexo) {
+                            return false; // Exclude if gender specific and doesn't match
+                        }
+                        return true;
+                    });
+                } else if (selectedGroup === "Cardio" && cardioExercises[nivel]) { // Changed from "Cardio / Condicionamento" to "Cardio"
+                    availableExercises = cardioExercises[nivel].map(c => ({
+                        nome: c.nome,
+                        grupoPrimario: "Cardio", // Changed from "Cardio / Condicionamento" to "Cardio"
+                        equipamento: [], // Cardio doesn't have specific equipment in this context
+                        instrucoes: `${c.duracao || ''}, ${c.intensidade || ''}` // Ensure duration/intensity exist
+                    }));
+                }
+
+                availableExercises.forEach(ex => {
+                    const option = document.createElement('option');
+                    option.value = ex.nome;
+                    option.innerText = ex.nome;
+                    exerciseSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Event listener for technique select to show/hide paired exercise dropdown
+        document.getElementById('addExTecnica').addEventListener('change', function() {
+            const technique = this.value;
+            const pairContainer = document.getElementById('addExPairContainer');
+            const pairSelect = document.getElementById('addExPair');
+            pairSelect.innerHTML = '';
+
+            if (technique === 'Bi-set' || technique === 'Superset') {
+                pairContainer.style.display = 'block';
+                const selectedDayIndex = document.getElementById('addExDaySelect').value;
+                const exercisesInSelectedDay = generatedTrainingPlan[selectedDayIndex].exercises;
+
+                exercisesInSelectedDay.forEach((ex, idx) => {
+                    const option = document.createElement('option');
+                    option.value = ex.nome;
+                    option.innerText = ex.nome;
+                    pairSelect.appendChild(option);
+                });
+            } else {
+                pairContainer.style.display = 'none';
+            }
+        });
+
+        document.getElementById('editExTecnica').addEventListener('change', function() {
+            const technique = this.value;
+            const pairContainer = document.getElementById('editExPairContainer');
+            const pairSelect = document.getElementById('editExPair');
+            pairSelect.innerHTML = '';
+
+            if (technique === 'Bi-set' || technique === 'Superset') {
+                pairContainer.style.display = 'block';
+                const exercisesInSelectedDay = generatedTrainingPlan[currentEditDayIndex].exercises;
+
+                exercisesInSelectedDay.forEach((ex, idx) => {
+                    if (idx !== currentEditExerciseIndex) { // Don't allow pairing with itself
+                        const option = document.createElement('option');
+                        option.value = idx; // Store index for easy lookup
+                        option.innerText = ex.nome;
+                        pairSelect.appendChild(option);
+                    }
+                });
+            } else {
+                pairContainer.style.display = 'none';
+            }
+        });
+
+
+        // Function to add a new exercise to the selected day in the generated plan
+        function addNewExerciseToDay() {
+            const dayIndex = parseInt(document.getElementById('addExDaySelect').value);
+            const exerciseName = document.getElementById('addExSelect').value;
+            const series = parseInt(document.getElementById('addExSeries').value);
+            const reps = document.getElementById('addExReps').value;
+            const descanso = parseInt(document.getElementById('addExDescanso').value);
+            const tecnica = document.getElementById('addExTecnica').value;
+            const pairedExerciseName = document.getElementById('addExPair').value;
+
+            if (!exerciseName || isNaN(series) || !reps || isNaN(descanso)) {
+                showModal("Por favor, preencha todos os campos do exercício.");
                 return;
             }
 
-            generatedTrainingPlan = [];
+            let pairedExercise = null;
+            if ((tecnica === 'Bi-set' || tecnica === 'Superset') && pairedExerciseName) {
+                // Find the actual exercise object for the paired exercise
+                pairedExercise = generatedTrainingPlan[dayIndex].exercises.find(ex => ex.nome === pairedExerciseName);
+            }
 
-            const maxTecnicasPorDia = 2;
+            const newExercise = {
+                nome: exerciseName,
+                series: series,
+                reps: reps,
+                descanso: descanso,
+                tecnica: tecnica,
+                pairedExercise: pairedExercise
+            };
 
-            customDivisionsData.forEach(dia => {
-                const diaLetra = dia.dayLabel;
-                const gruposDoDia = dia.selectedGroups;
-                let tecnicasAplicadasNesteDia = 0;
-                const exerciciosJaUsadosNoDia = new Set();
+            generatedTrainingPlan[dayIndex].exercises.push(newExercise);
+            renderGeneratedTrainingPlan();
+            saveUserData();
+            closeModal();
+        }
 
-                const currentDayExercises = [];
+        function getSeriesRepeticoes(objetivo, nivel) {
+            switch (objetivo) {
+                case "Hipertrofia":
+                    if (nivel === "Iniciante") return "3x10-12";
+                    if (nivel === "Intermediario") return "3-4x8-12";
+                    if (nivel === "Avancado") return "4x6-10";
+                    break;
+                case "Emagrecimento":
+                    if (nivel === "Iniciante") return "3x12-15";
+                    if (nivel === "Intermediario") return "3-4x12-15";
+                    if (nivel === "Avancado") return "4-5x15-20";
+                    break;
+                case "Forca":
+                    if (nivel === "Iniciante") return "3x8-10";
+                    if (nivel === "Intermediario") return "3-5x6-8";
+                    if (nivel === "Avancado") return "5x3-5";
+                    break;
+                case "Resistencia":
+                    if (nivel === "Iniciante") return "3x15-20";
+                    if (nivel === "Intermediario") return "3-4x15-25";
+                    if (nivel === "Avancado") return "4-5x20+";
+                    break;
+                default:
+                    return "3x10-12";
+            }
+            return "3x10-12";
+        }
 
-                if (gruposDoDia.length === 0) {
-                     generatedTrainingPlan.push({
-                        dayLabel: diaLetra,
-                        muscleGroups: gruposDoDia,
-                        exercises: [],
-                        cardio: null,
-                    });
+        function getDescanso(objetivo) {
+            switch (objetivo) {
+                case "Hipertrofia": return "60-90 segundos";
+                case "Emagrecimento": return "30-60 segundos";
+                case "Forca": return "90-180 segundos";
+                case "Resistencia": return "30-45 segundos";
+                default: return "60 segundos";
+            }
+        }
+
+        // Função para selecionar um número aleatório de itens de uma lista
+        function getRandomSubset(arr, numItems) {
+            if (numItems >= arr.length) {
+                return [...arr]; // Retorna uma cópia completa se o número for maior ou igual
+            }
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, numItems);
+        }
+
+        // Main function to generate the training plan
+        async function gerarTreino() {
+            const nomeAluno = document.getElementById('nomeAluno').value.trim();
+            const idade = parseInt(document.getElementById('idade').value);
+            const peso = parseFloat(document.getElementById('peso').value);
+            const altura = parseFloat(document.getElementById('altura').value);
+            const sexo = document.getElementById('sexo').value;
+            const nivel = document.getElementById('nivel').value;
+            const objetivo = document.getElementById('objetivo').value;
+            const observacoesGerais = document.getElementById('observacoesGerais').value.trim();
+
+            if (!nomeAluno || !idade || !peso || !altura) {
+                showModal("Por favor, preencha o nome do aluno, idade, peso e altura.");
+                return;
+            }
+
+            generatedTrainingPlan = []; // Clear previous plan
+
+            const selectedOptionalExercises = Array.from(document.querySelectorAll('.optional-exercise:checked')).map(cb => cb.value);
+            const selectedTecnicasAvancadas = Array.from(document.querySelectorAll('.tecnica-avancada:checked')).map(cb => cb.value);
+
+            const dayEntries = document.querySelectorAll('.custom-day-entry');
+            if (dayEntries.length === 0) {
+                showModal("Por favor, adicione pelo menos um dia de treino personalizado.");
+                return;
+            }
+
+            let hasInvalidSelection = false;
+            const customDivisionsData = [];
+            dayEntries.forEach((entry, index) => {
+                const dayId = `custom_day_${index}`; // Recalculate dayId based on current index
+                const selectedOptions = Array.from(entry.querySelectorAll(`input[name="${dayId}_group_checkbox"]:checked`)).map(cb => cb.value);
+
+                if (selectedOptions.length === 0) {
+                    showModal(`Dia ${String.fromCharCode(65 + index)}: Por favor, selecione pelo menos um grupo muscular para este dia.`);
+                    hasInvalidSelection = true;
                     return;
                 }
+                customDivisionsData.push({
+                    dayName: String.fromCharCode(65 + index),
+                    groups: selectedOptions
+                });
+            });
+
+            if (hasInvalidSelection) {
+                console.error("Geração de treino interrompida devido a seleção inválida de grupos.");
+                return; // Para a geração se houver grupos inválidos
+            }
+
+            // Prepare structured data for PDF
+            treinoGeradoConteudoParaPDF = {
+                aluno: nomeAluno,
+                idade: idade,
+                peso: peso,
+                altura: altura,
+                sexo: sexo,
+                nivel: nivel,
+                objetivo: objetivo,
+                tecnicas: selectedTecnicasAvancadas,
+                observacoes: observacoesGerais,
+                dias: []
+            };
+
+            let treinoOutputHTML = `<h2>🏋️ Treino Personalizado para ${nomeAluno} 🏋️</h2>`;
+            treinoOutputHTML += `<p><strong>📊 Nível:</strong> ${nivel} | <strong>🎯 Objetivo:</strong> ${objetivo}</p>`;
+            
+            if (selectedTecnicasAvancadas.length > 0) {
+                treinoOutputHTML += `<p><strong>✨ Técnicas Avançadas Aplicadas:</strong> ${selectedTecnicasAvancadas.join(', ')}</p>`;
+            }
+            
+            if (observacoesGerais) {
+                treinoOutputHTML += `<p><strong>📝 Observações do Professor:</strong> ${observacoesGerais}</p>`;
+            }
+            treinoOutputHTML += `\n<hr style="border-color: rgba(255,255,255,0.3);">\n`;
+
+
+            // Define recommended techniques based on objective and level
+            const techniqueRecommendations = {
+                "Hipertrofia": {
+                    "Iniciante": [],
+                    "Intermediario": ["Drop set", "Pirâmide", "Superset", "Bi-set"],
+                    "Avancado": ["Drop set", "Pirâmide", "Superset", "Rest-pause", "FST-7", "Bi-set", "Cluster set", "Myo-reps"]
+                },
+                "Emagrecimento": {
+                    "Iniciante": [],
+                    "Intermediario": ["Superset", "Bi-set", "Drop set"],
+                    "Avancado": ["Superset", "Bi-set", "Drop set", "Rest-pause"]
+                },
+                "Forca": {
+                    "Iniciante": [],
+                    "Intermediario": ["Pirâmide", "Cluster set"],
+                    "Avancado": ["Pirâmide", "Cluster set", "Rest-pause"]
+                },
+                "Resistencia": {
+                    "Iniciante": [],
+                    "Intermediario": ["Superset", "Bi-set"],
+                    "Avancado": ["Superset", "Bi-set", "Drop set"]
+                }
+            };
+
+            // Filter selected techniques by what's applicable for the objective and level
+            const applicableTechniques = (techniqueRecommendations[objetivo] && techniqueRecommendations[objetivo][nivel])
+                ? techniqueRecommendations[objetivo][nivel].filter(tech => selectedTecnicasAvancadas.includes(tech))
+                : [];
+
+            customDivisionsData.forEach((diaConfig, i) => {
+                const diaLetra = diaConfig.dayName;
+                const gruposDoDia = diaConfig.groups;
+                
+                // Gerar o título do dia
+                let tituloDia = `🗓️ DIA ${diaLetra}: `;
+                tituloDia += `${gruposDoDia[0]}`;
+                if (gruposDoDia.length > 1) {
+                    tituloDia += ` + ${gruposDoDia.slice(1).join(' + ')}`;
+                }
+                treinoOutputHTML += `<h3>${tituloDia}</h3>\n`;
+                
+                // Aquecimento (seleção aleatória de 3-4 itens)
+                const selectedWarmup = getRandomSubset(aquecimentoAlongamento["Aquecimento Geral (5-10 minutos)"], Math.floor(Math.random() * (4 - 3 + 1)) + 3);
+                treinoOutputHTML += `<p><strong>🔥 Aquecimento Geral (5-10 min):</strong></p><ul>`;
+                selectedWarmup.forEach(item => {
+                    treinoOutputHTML += `<li>${item}</li>`;
+                });
+                treinoOutputHTML += `</ul>\n`;
+
+                const exerciciosJaUsadosNoDia = new Set(); // Para evitar exercícios repetidos no MESMO dia
+                
+                let tecnicasAplicadasNesteDia = 0;
+                const maxTecnicasPorDia = 2; // Limite de técnicas por dia para treinos personalizados
+
+                // --- Level Differentiation (Volume) ---
+                let minBase, maxBase;
+                if (nivel === "Iniciante") {
+                    minBase = 5; maxBase = 6;
+                } else if (nivel === "Intermediario") {
+                    minBase = 6; maxBase = 7; // Alterado para 6-7
+                } else { // Avancado
+                    minBase = 7; maxBase = 8; // Alterado para 7-8
+                }
+                let totalExerciciosDesejadosNoDia = Math.floor(Math.random() * (maxBase - minBase + 1)) + minBase;
+
+                // Calculate base distribution
+                let baseExercisesPerGroup = Math.floor(totalExerciciosDesejadosNoDia / gruposDoDia.length);
+                let remainder = totalExerciciosDesejadosNoDia % gruposDoDia.length;
+
+                const distribuicaoExerciciosPorGrupo = {};
+                gruposDoDia.forEach(grupo => {
+                    distribuicaoExerciciosPorGrupo[grupo] = baseExercisesPerGroup;
+                });
+
+                // Distribute any remaining remainder to other groups cyclically
+                for (let k = 0; k < remainder; k++) {
+                    distribuicaoExerciciosPorGrupo[gruposDoDia[k % gruposDoDia.length]]++;
+                }
+
+
+                let allExercisesFoundForDay = true; // Flag para verificar se todos os exercícios foram encontrados
+
+                const exercisesForPdfTable = []; // Collect exercises for PDF table in order
+                const htmlExerciseList = []; // Collect HTML list items for display
 
                 gruposDoDia.forEach(grupo => {
-                    const grupoPrimario = grupo;
+                    const numExerciciosParaGrupo = distribuicaoExerciciosPorGrupo[grupo] || 0;
+                    if (numExerciciosParaGrupo === 0) return; // Skip if no exercises for this group
+
+                    let availableExercisesForGroup = bancoDeExercicios[grupo] ? bancoDeExercicios[grupo][nivel] : [];
+
+                    // Step 1: Filter by optional equipment first
+                    let equipmentFilteredExercises = availableExercisesForGroup.filter(ex => {
+                        const equipmentType = ex.equipamento[0]; // Assuming first equipment type is primary
+                        switch (equipmentType) {
+                            case "Faixa Elástica": return selectedOptionalExercises.includes("Faixa Elástica");
+                            case "Peso Corporal": return selectedOptionalExercises.includes("Peso Corporal");
+                            case "Cabos": return selectedOptionalExercises.includes("Cabos");
+                            case "Kettlebell": return selectedOptionalExercises.includes("Kettlebell");
+                            // If no optional equipment is selected, or if the equipment is a "core" type, include it
+                            default: return true;
+                        }
+                    });
+
+                    // Filter by gender specificity
+                    equipmentFilteredExercises = equipmentFilteredExercises.filter(ex => {
+                        if (ex.genderSpecific && ex.genderSpecific !== sexo) {
+                            return false; // Exclude if gender specific and doesn't match
+                        }
+                        return true;
+                    });
+
+
+                    // Step 2: Separate by difficulty levels for intelligent picking
+                    let beginnerExercises = equipmentFilteredExercises.filter(ex => ex.difficulty === "Iniciante");
+                    let intermediateExercises = equipmentFilteredExercises.filter(ex => ex.difficulty === "Intermediario");
+                    let advancedExercises = equipmentFilteredExercises.filter(ex => ex.difficulty === "Avancado");
+
+                    let selectedExercisesForGroup = [];
+                    let attempts = 0;
+                    const maxAttemptsPerExercise = 50; // Limit attempts to find a unique exercise
+
+                    // Prioritize difficulty based on level
+                    if (nivel === "Iniciante") {
+                        // Try to fill with beginner exercises
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && beginnerExercises.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const randomIndex = Math.floor(Math.random() * beginnerExercises.length);
+                            const exercise = beginnerExercises[randomIndex];
+                            if (!exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                                beginnerExercises.splice(randomIndex, 1); // Remove to prevent re-picking from this temp array
+                            }
+                            attempts++;
+                        }
+                        // If still not enough, try intermediate exercises
+                        attempts = 0; // Reset attempts
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && intermediateExercises.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const randomIndex = Math.floor(Math.random() * intermediateExercises.length);
+                            const exercise = intermediateExercises[randomIndex];
+                            if (!exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                                intermediateExercises.splice(randomIndex, 1);
+                            }
+                            attempts++;
+                        }
+                    } else if (nivel === "Intermediario") {
+                        // Try intermediate first
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && intermediateExercises.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const randomIndex = Math.floor(Math.random() * intermediateExercises.length);
+                            const exercise = intermediateExercises[randomIndex];
+                            if (!exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                                intermediateExercises.splice(randomIndex, 1);
+                            }
+                            attempts++;
+                        }
+                        // Then beginner
+                        attempts = 0;
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && beginnerExercises.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const randomIndex = Math.floor(Math.random() * beginnerExercises.length);
+                            const exercise = beginnerExercises[randomIndex];
+                            if (!exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                                beginnerExercises.splice(randomIndex, 1);
+                            }
+                            attempts++;
+                        }
+                        // Finally advanced (as a last resort for variety/completeness)
+                        attempts = 0;
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && advancedExercises.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const randomIndex = Math.floor(Math.random() * advancedExercises.length);
+                            const exercise = advancedExercises[randomIndex];
+                            if (!exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                                advancedExercises.splice(randomIndex, 1);
+                            }
+                            attempts++;
+                        }
+                    } else { // Avancado
+                        // For advanced, all are fair game. Combine and shuffle.
+                        let allEligibleForAdvanced = [...beginnerExercises, ...intermediateExercises, ...advancedExercises];
+                        allEligibleForAdvanced.sort(() => 0.5 - Math.random()); // Shuffle for randomness
+
+                        while (selectedExercisesForGroup.length < numExerciciosParaGrupo && allEligibleForAdvanced.length > 0 && attempts < maxAttemptsPerExercise * numExerciciosParaGrupo) {
+                            const exercise = allEligibleForAdvanced.shift(); // Take from the beginning
+                            if (exercise && !exerciciosJaUsadosNoDia.has(exercise.nome)) {
+                                selectedExercisesForGroup.push(exercise);
+                                exerciciosJaUsadosNoDia.add(exercise.nome);
+                            }
+                            attempts++;
+                        }
+                    }
+
+                    // If still not enough, it means the pool of exercises is truly exhausted for this group
+                    if (selectedExercisesForGroup.length < numExerciciosParaGrupo) {
+                        console.warn(`Aviso: Não foi possível encontrar o número desejado de exercícios (${numExerciciosParaGrupo}) para o grupo ${grupo} no nível ${nivel}. Encontrados: ${selectedExercisesForGroup.length}.`);
+                        // We will proceed with the exercises found, even if fewer than desired.
+                    }
                     
-                    const exerciciosDisponiveis = exerciciosDB.filter(ex =>
-                        ex.grupoPrimario === grupoPrimario &&
-                        (nivel === "Avancado" || ex.difficulty === "Iniciante" || ex.difficulty === "Intermediario") &&
-                        (nivel === "Intermediario" ? ex.difficulty !== "Avancado" : true) &&
-                        equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq) // Handles both array and string
-                    );
+                    // Add to ordered list for PDF and HTML
+                    if (selectedExercisesForGroup.length > 0) {
+                        htmlExerciseList.push(`<h4>--- ${grupo} ---</h4><ul>`); // Sub-título para o grupo muscular
+                        selectedExercisesForGroup.forEach(exercicio => {
+                            let execucaoText = `${getSeriesRepeticoes(objetivo, nivel)} | Descanso: ${getDescanso(objetivo)}`;
+                            let tecnicaAplicada = "";
+                            let pairedExerciseObj = null;
 
-                    let numExerciciosPorGrupo;
-                    if (nivel === "Iniciante") numExerciciosPorGrupo = 2;
-                    else if (nivel === "Intermediario") numExerciciosPorGrupo = 3;
-                    else numExerciciosPorGrupo = 3;
+                            // Adjust chance for technique based on level
+                            let chanceTecnica = 0;
+                            if (nivel === "Avancado") {
+                                chanceTecnica = 0.6;
+                            } else if (nivel === "Intermediario") {
+                                chanceTecnica = 0.3;
+                            } else { // Iniciante
+                                chanceTecnica = 0.05; // Very low chance for beginners
+                            }
+                            
+                            // Lógica de Aplicação Inteligente de Técnicas
+                            if (applicableTechniques.length > 0 && tecnicasAplicadasNesteDia < maxTecnicasPorDia) {
+                                if (Math.random() < chanceTecnica) {
+                                    const potentialTechniques = shuffleArray([...applicableTechniques]); // Shuffle to pick randomly
+                                    for (const tech of potentialTechniques) {
+                                        if (tech === 'Bi-set' || tech === 'Superset') {
+                                            // Try to find a paired exercise from the same group and difficulty, not already used
+                                            const potentialPairedExercises = equipmentFilteredExercises.filter(
+                                                ex => ex.nome !== exercicio.nome && !exerciciosJaUsadosNoDia.has(ex.nome) && ex.grupoPrimario === exercicio.grupoPrimario && ex.difficulty === exercicio.difficulty
+                                            );
 
-                    let shuffledExercicios = shuffleArray([...exerciciosDisponiveis]);
-                    let exercisesAddedForGroup = 0;
-
-                    for (let i = 0; i < shuffledExercicios.length && exercisesAddedForGroup < numExerciciosPorGrupo; i++) {
-                        const exercicio = shuffledExercicios[i];
-                        if (exerciciosJaUsadosNoDia.has(exercicio.nome)) {
-                            continue;
-                        }
-                        
-                        exerciciosJaUsadosNoDia.add(exercicio.nome);
-                        exercisesAddedForGroup++;
-
-                        const execucaoText = getSeriesRepeticoes(objetivo, nivel);
-                        let tecnicaAplicada = '';
-                        let pairedExerciseObj = null;
-
-                        const applicableTechniques = tecnicasSelecionadas.filter(tech =>
-                            (nivel === "Avancado" && ["Drop Set", "Bi-set", "Superset", "FST-7", "Rest-Pause"].includes(tech)) ||
-                            (nivel === "Intermediario" && ["Bi-set", "Superset"].includes(tech) && Math.random() < 0.5)
-                        );
-
-                        let chanceTecnica;
-                        if (nivel === "Avancado") {
-                            chanceTecnica = 0.6;
-                        } else if (nivel === "Intermediario") {
-                            chanceTecnica = 0.3;
-                        } else {
-                            chanceTecnica = 0.05;
-                        }
-                        
-                        if (applicableTechniques.length > 0 && tecnicasAplicadasNesteDia < maxTecnicasPorDia) {
-                            const potentialTechniques = shuffleArray([...applicableTechniques]);
-                            for (const tech of potentialTechniques) {
-                                if (tech === 'Bi-set' || tech === 'Superset') {
-                                    const potentialPairedExercises = exerciciosDB.filter(
-                                        ex => ex.nome !== exercicio.nome && !exerciciosJaUsadosNoDia.has(ex.nome) && ex.grupoPrimario === exercicio.grupoPrimario && ex.difficulty === exercicio.difficulty && equipamentosSelecionados.some(eq => Array.isArray(ex.equipamento) ? ex.equipamento.includes(eq) : ex.equipamento === eq)
-                                    );
-
-                                    if (potentialPairedExercises.length > 0) {
-                                        pairedExerciseObj = potentialPairedExercises[Math.floor(Math.random() * potentialPairedExercises.length)];
-                                        tecnicaAplicada = tech;
-                                        tecnicasAplicadasNesteDia++;
-                                        exerciciosJaUsadosNoDia.add(pairedExerciseObj.nome);
-                                        break;
+                                            if (potentialPairedExercises.length > 0) {
+                                                pairedExerciseObj = potentialPairedExercises[Math.floor(Math.random() * potentialPairedExercises.length)];
+                                                tecnicaAplicada = tech;
+                                                tecnicasAplicadasNesteDia++;
+                                                exerciciosJaUsadosNoDia.add(pairedExerciseObj.nome); // Mark paired exercise as used for this day
+                                                break; // Found a technique and a pair, break from inner loop
+                                            }
+                                        } else {
+                                            tecnicaAplicada = tech;
+                                            tecnicasAplicadasNesteDia++;
+                                            break; // Found a non-paired technique, break from inner loop
+                                        }
                                     }
-                                } else {
-                                    tecnicaAplicada = tech;
-                                    tecnicasAplicadasNesteDia++;
-                                    break;
                                 }
                             }
-                        }
 
-                        currentDayExercises.push({
-                            nome: exercicio.nome,
-                            equipamento: Array.isArray(exercicio.equipamento) ? exercicio.equipamento.join(', ') : exercicio.equipamento,
-                            series: parseInt(execucaoText.split('x')[0]),
-                            reps: execucaoText.split('x')[1],
-                            descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
-                            tecnica: tecnicaAplicada || '',
-                            pairedExercise: pairedExerciseObj ? { nome: pairedExerciseObj.nome } : null
-                        });
+                            htmlExerciseList.push(`<li><strong>${exercicio.nome}</strong> (${exercicio.equipamento.join(', ')}) - ${execucaoText}`);
+                            if (tecnicaAplicada) {
+                                htmlExerciseList[htmlExerciseList.length - 1] += ` | Técnica: ${tecnicaAplicada}`;
+                            }
+                            htmlExerciseList.push(`</li>`);
 
-                        if (pairedExerciseObj) {
-                            currentDayExercises.push({
-                                nome: `${pairedExerciseObj.nome} (Conjugado com ${exercicio.nome})`,
-                                equipamento: Array.isArray(pairedExerciseObj.equipamento) ? pairedExerciseObj.equipamento.join(', ') : pairedExerciseObj.equipamento,
-                                series: parseInt(execucaoText.split('x')[0]),
-                                reps: execucaoText.split('x')[1],
-                                descanso: parseInt(getDescanso(objetivo).replace(' segundos', '')),
-                                tecnica: tecnicaAplicada,
-                                pairedExercise: { nome: exercicio.nome }
+                            exercisesForPdfTable.push({
+                                nome: exercicio.nome,
+                                equipamento: exercicio.equipamento.join(', '),
+                                execucao: getSeriesRepeticoes(objetivo, nivel),
+                                descanso: getDescanso(objetivo),
+                                tecnica: tecnicaAplicada || '-'
                             });
-                            exercisesAddedForGroup++; 
-                        }
+
+                            if (pairedExerciseObj) {
+                                // Add the paired exercise immediately after the first one
+                                htmlExerciseList.push(`<li><strong>${pairedExerciseObj.nome}</strong> (${pairedExerciseObj.equipamento.join(', ')}) - ${execucaoText} (Conjugado com ${exercicio.nome})</li>`);
+                                exercisesForPdfTable.push({
+                                    nome: `${pairedExerciseObj.nome} (Conjugado com ${exercicio.nome})`,
+                                    equipamento: pairedExerciseObj.equipamento.join(', '),
+                                    execucao: getSeriesRepeticoes(objetivo, nivel),
+                                    descanso: getDescanso(objetivo),
+                                    tecnica: tecnicaAplicada // Same technique for the pair
+                                });
+                            }
+                        });
+                        htmlExerciseList.push(`</ul>`);
                     }
                 });
 
-                let cardioText = null;
-                if (objetivo === "Emagrecimento" || Math.random() > 0.4) {
+                const currentDayPdfData = {
+                    dayName: diaLetra,
+                    groups: gruposDoDia,
+                    warmup: selectedWarmup,
+                    exercises: [], // Will be populated with ordered exercises
+                    cardio: null,
+                    motivationalPhrase: "Disciplina é o que transforma intenção em conquista." // This will be removed from here for PDF
+                };
+
+                if (exercisesForPdfTable.length === 0) { // Check if any exercises were generated at all for the day
+                    treinoOutputHTML += `<p style="color: #ffcccc;">Não foi possível gerar exercícios para o Dia ${diaLetra}. Por favor, verifique a sua seleção de grupos musculares, opções de equipamentos e nível de treino para garantir que há exercícios disponíveis.</p>\n`;
+                    currentDayPdfData.exercises.push({
+                        nome: `Não foi possível gerar exercícios para o Dia ${diaLetra}.`,
+                        equipamento: "",
+                        execucao: "Verifique a configuração.",
+                        descanso: "",
+                        tecnica: ""
+                    });
+                } else {
+                    treinoOutputHTML += `<p><strong>💪 Treino de Força:</strong></p>${htmlExerciseList.join('\n')}`;
+                    currentDayPdfData.exercises = exercisesForPdfTable; // Assign the ordered exercises
+                }
+
+                // Cardio (kept - now can be included on any custom day)
+                // To avoid cardio on *all* days, we can add a chance or rule
+                if (objetivo === "Emagrecimento" || Math.random() > 0.4) { // Always include for Weight Loss, 60% chance for others
                     const availableCardio = cardioExercises[nivel];
                     if (availableCardio && availableCardio.length > 0) {
                         const cardioEscolhido = availableCardio[Math.floor(Math.random() * availableCardio.length)];
-                        cardioText = cardioEscolhido.nome;
+                        let cardioText = cardioEscolhido.nome;
                         if (objetivo === "Emagrecimento") {
                             cardioText += " - Mantenha a intensidade para maximizar a queima de gordura!";
                         }
+                        treinoOutputHTML += `<p><strong>🏃 Cardio:</strong> ${cardioText}</p>\n`;
+                        currentDayPdfData.cardio = cardioText;
                     } else {
-                        cardioText = "Não foi possível gerar um exercício de cardio para este nível.";
+                           treinoOutputHTML += `<p><strong>🏃 Cardio:</strong> Não foi possível gerar um exercício de cardio para este nível.</p>\n`;
+                           currentDayPdfData.cardio = "Não foi possível gerar um exercício de cardio para este nível.";
                     }
                 }
 
+                // Removed motivational phrase from HTML output for each day
+                // treinoOutputHTML += `<p><strong>🌟 Motivação:</strong> ${currentDayPdfData.motivationalPhrase}</p>\n`;
+                
+                treinoOutputHTML += `\n<hr style="border-color: rgba(255,255,255,0.3);">\n`;
+                treinoGeradoConteudoParaPDF.dias.push(currentDayPdfData);
                 generatedTrainingPlan.push({
                     dayLabel: diaLetra,
                     muscleGroups: gruposDoDia,
-                    exercises: currentDayExercises,
-                    cardio: cardioText,
+                    exercises: exercisesForPdfTable.map(ex => ({ // Convert back to a simpler format for generatedTrainingPlan
+                        nome: ex.nome.replace(/\s\(Conjugado com.*?\)/, ''), // Clean name for internal use
+                        series: parseInt(ex.execucao.split('x')[0].replace('-', '')), // Extract series
+                        reps: ex.execucao.split('x')[1], // Extract reps
+                        descanso: parseInt(ex.descanso.replace(' segundos', '')), // Extract descanso
+                        tecnica: ex.tecnica === '-' ? '' : ex.tecnica,
+                        pairedExercise: ex.nome.includes('(Conjugado com') ? { nome: ex.nome.match(/\(Conjugado com (.*?)\)/)[1] } : null // Extract paired name
+                    }))
                 });
-            });
+            }); // End of customDivisionsData loop
 
-            displayGeneratedTrainingPlan();
+            document.getElementById('resultado').innerHTML = treinoOutputHTML;
+            saveUserData();
         }
 
         // --- PDF EXPORT LOGIC ---
         function cleanTextForPdf(text) {
-            if (!text) return '';
-            const cleaned = text
-                .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, '')
-                .replace(/<strong>(.*?)<\/strong>/g, '$1')
-                .replace(/<em>(.*?)<\/em>/g, '$1')
-                .replace(/<hr.*?>/g, '\n------------------------------------------------------\n')
-                .trim();
+            // Remove emojis and other special characters that may cause problems in PDF or regex without 'u' flag
+            // This regex tries to cover a wide range of emojis and Unicode symbols without the 'u' flag
+            // Includes:
+            // - Basic emoji and symbol ranges (U+2000 to U+32FF)
+            // - Surrogate pairs that represent emojis outside the Basic Multilingual Plane (BMP)
+            // - Variation selectors (FE00-FE0F)
+            // - Zero Width Joiner (U+200D) and other emoji modifiers
+            const noEmojis = text.replace(/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|[\u2600-\u26FF]|\u2700-\u27BF|\uFE0E|\uFE0F|\u200D)/g, '');
+            
+            // Replaces HTML bold with a simple marker for PDF
+            const cleaned = noEmojis.replace(/<strong>(.*?)<\/strong>/g, '$1') // Remove strong tags
+                                    .replace(/<em>(.*?)<\/em>/g, '$1')      // Remove em tags
+                                    .replace(/<hr.*?>/g, '\n------------------------------------------------------\n'); // Replace <hr>
+
             return cleaned;
         }
 
-
         function exportarTreinoParaPDF() {
-            if (!treinoGeradoConteudoParaPDF.aluno || treinoGeradoConteudoParaPDF.dias.length === 0) {
+            if (!treinoGeradoConteudoParaPDF.aluno) {
                 showModal("Por favor, gere um treino primeiro antes de exportar para PDF.");
                 return;
             }
@@ -1018,37 +2149,29 @@
             let yOffset = margin;
             const lineHeight = 7;
             const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
 
-
+            // Function to add header and footer to each page
             const addPageContent = () => {
                 doc.setFontSize(10);
                 doc.setTextColor(150, 150, 150);
-                doc.text("Gerado por seu Treinador Pessoal.", margin, pageHeight - 10);
-                doc.text(`Página ${doc.internal.getNumberOfPages()}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-
-                if (YOUR_LOGO_BASE64_STRING_HERE) {
-                    const logoWidth = 25; // in mm
-                    const logoHeight = 25; // in mm
-                    doc.addImage(YOUR_LOGO_BASE64_STRING_HERE, 'PNG', pageWidth - margin - logoWidth, margin, logoWidth, logoHeight);
-                }
+                doc.text("Gerado por seu Treinador Pessoal.", margin, doc.internal.pageSize.getHeight() - 10);
+                doc.text(`Página ${doc.internal.getNumberOfPages()}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
             };
-
-            addPageContent(); // Add content to the first page
 
             // Main Title
             doc.setFontSize(22);
             doc.setTextColor(30, 78, 114); // Dark blue
-            doc.text(`Treino Personalizado para ${cleanTextForPdf(aluno)}`, pageWidth / 2, yOffset + 10, { align: 'center' }); // Adjusted Y for logo
-            yOffset += lineHeight * 3;
+            doc.text(`Treino Personalizado para ${aluno}`, pageWidth / 2, yOffset, { align: 'center' });
+            yOffset += lineHeight * 2;
 
-            doc.setDrawColor(200, 200, 200);
-            doc.line(margin, yOffset, pageWidth - margin, yOffset);
+            doc.setDrawColor(200, 200, 200); // Light gray color for the line
+            doc.line(margin, yOffset, pageWidth - margin, yOffset); // Separator line
             yOffset += lineHeight;
 
             doc.setFontSize(12);
-            doc.setTextColor(50, 50, 50);
+            doc.setTextColor(50, 50, 50); // Almost black
 
+            // General Training Information
             doc.text(`Idade: ${idade} anos`, margin, yOffset); yOffset += lineHeight;
             doc.text(`Peso: ${peso} kg`, margin, yOffset); yOffset += lineHeight;
             doc.text(`Altura: ${altura} cm`, margin, yOffset); yOffset += lineHeight;
@@ -1065,26 +2188,27 @@
 
             let tmb;
             if (sexo === 'Masculino') { tmb = (10 * peso) + (6.25 * altura) - (5 * idade) + 5; } else { tmb = (10 * peso) + (6.25 * altura) - (5 * idade) - 161; }
-            const activityFactor = (objetivo === "Emagrecimento") ? 1.375 : (objetivo === "Hipertrofia" ? 1.55 : 1.375); // Simple activity factor
+            const activityFactor = 1.375;
             let caloriesNeeded = tmb * activityFactor;
-            if (objetivo === 'Hipertrofia') { caloriesNeeded += 300; } else if (objetivo === 'Emagrecimento') { caloriesNeeded -= 500; } // Adjusted for more common values
+            if (objetivo === 'Hipertrofia') { caloriesNeeded += 500; } else if (objetivo === 'Emagrecimento') { caloriesNeeded -= 500; }
 
             doc.text(`IMC: ${imc.toFixed(2)} (${imcClassification})`, margin, yOffset); yOffset += lineHeight;
             doc.text(`Faixa de Peso Ideal: ${minIdealWeight.toFixed(2)} kg - ${maxIdealWeight.toFixed(2)} kg`, margin, yOffset); yOffset += lineHeight;
             doc.text(`TMB (Taxa Metabólica Basal): ${tmb.toFixed(2)} calorias/dia`, margin, yOffset); yOffset += lineHeight;
             doc.text(`Calorias Estimadas para o Objetivo: ${caloriesNeeded.toFixed(2)} calorias/dia`, margin, yOffset); yOffset += lineHeight;
             
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(69, 123, 157);
+            // Motivational Phrase with emphasis - ONLY ON FIRST PAGE
+            doc.setFontSize(14); // Larger font for emphasis
+            doc.setFont('helvetica', 'bold'); // Bold font
+            doc.setTextColor(69, 123, 157); // A slightly different blue for emphasis
             const motivationalPhrase = "Disciplina é o que transforma intenção em conquista.";
             const phraseLines = doc.splitTextToSize(motivationalPhrase, pageWidth - 2 * margin);
             doc.text(phraseLines, pageWidth / 2, yOffset + lineHeight, { align: 'center' });
-            yOffset += lineHeight * (phraseLines.length + 1);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(50, 50, 50);
-            yOffset += lineHeight;
+            yOffset += lineHeight * (phraseLines.length + 1); // Adjust yOffset based on lines and add extra space
+            doc.setFontSize(12); // Reset font size
+            doc.setFont('helvetica', 'normal'); // Reset font style
+            doc.setTextColor(50, 50, 50); // Reset text color
+            yOffset += lineHeight; // Additional space after the phrase
 
 
             if (tecnicas.length > 0) {
@@ -1092,23 +2216,24 @@
                 yOffset += lineHeight;
             }
             if (observacoes) {
-                const obsLines = doc.splitTextToSize(`Observações: ${cleanTextForPdf(observacoes)}`, pageWidth - 2 * margin);
+                // Text wrapping for observations
+                const obsLines = doc.splitTextToSize(`Observações: ${observacoes}`, pageWidth - 2 * margin);
                 doc.text(obsLines, margin, yOffset);
                 yOffset += lineHeight * obsLines.length;
             }
-            yOffset += lineHeight;
+            yOffset += lineHeight; // Space after general information
 
-            doc.line(margin, yOffset, pageWidth - margin, yOffset);
-            yOffset += lineHeight * 1.5;
+            doc.line(margin, yOffset, pageWidth - margin, yOffset); // Separator line
+            yOffset += lineHeight * 1.5; // More space before the first day
 
+            // Iterate over training days
             dias.forEach((dia, index) => {
-                // Check if new page is needed for the day's content
-                const minSpaceForDay = 4 * lineHeight + 20; // Title + warmup est.
-                if (yOffset + minSpaceForDay > pageHeight - margin) {
+                // Add new page if there isn't enough space for the next day
+                if (yOffset + 50 > doc.internal.pageSize.getHeight() - margin) { // 50 is an estimated height for day title + warm-up
                     doc.addPage();
                     yOffset = margin;
-                    addPageContent();
-                    yOffset += lineHeight * 2;
+                    addPageContent(); // Add header/footer to the new page
+                    yOffset += lineHeight * 2; // Space after header
                 }
 
                 // Day Title
@@ -1123,60 +2248,56 @@
                 doc.text('Aquecimento Geral (5-10 min):', margin, yOffset);
                 yOffset += lineHeight;
                 dia.warmup.forEach(item => {
-                    const warmupItemLines = doc.splitTextToSize(`  - ${cleanTextForPdf(item)}`, pageWidth - 2 * margin);
-                    doc.text(warmupItemLines, margin, yOffset);
-                    yOffset += lineHeight * warmupItemLines.length;
+                    doc.text(`  - ${item}`, margin, yOffset);
+                    yOffset += lineHeight;
                 });
-                yOffset += lineHeight;
+                yOffset += lineHeight; // Space after warm-up
 
                 // Strength Exercises Table
                 const tableHeaders = [['Exercício', 'Equipamento', 'Séries/Repetições', 'Descanso', 'Técnica']];
                 const tableData = dia.exercises.map(ex => [
-                    cleanTextForPdf(ex.nome),
-                    cleanTextForPdf(ex.equipamento),
-                    cleanTextForPdf(ex.execucao),
-                    cleanTextForPdf(ex.descanso),
-                    cleanTextForPdf(ex.tecnica || '-')
+                    ex.nome,
+                    ex.equipamento,
+                    ex.execucao,
+                    ex.descanso,
+                    ex.tecnica || '-' // If no technique, show '-'
                 ]);
 
-                if (tableData.length > 0) {
-                     doc.autoTable({
-                        startY: yOffset,
-                        head: tableHeaders,
-                        body: tableData,
-                        theme: 'grid',
-                        styles: {
-                            font: 'helvetica',
-                            fontSize: 10,
-                            cellPadding: 2,
-                            lineColor: 200,
-                            lineWidth: 0.1,
-                            overflow: 'linebreak'
-                        },
-                        headStyles: {
-                            fillColor: [69, 123, 157],
-                            textColor: [255, 255, 255],
-                            fontStyle: 'bold'
-                        },
-                        bodyStyles: {
-                            textColor: [50, 50, 50]
-                        },
-                        alternateRowStyles: {
-                            fillColor: [240, 240, 240]
-                        },
-                        margin: { left: margin, right: margin },
-                        didDrawPage: (data) => {
-                            addPageContent();
-                        }
-                    });
-                    yOffset = doc.autoTable.previous.finalY + lineHeight;
-                } else {
-                    doc.text("Nenhum exercício gerado para este dia.", margin, yOffset);
-                    yOffset += lineHeight * 2;
-                }
-               
+                doc.autoTable({
+                    startY: yOffset,
+                    head: tableHeaders,
+                    body: tableData,
+                    theme: 'grid', // 'striped', 'grid', 'plain'
+                    styles: {
+                        font: 'helvetica',
+                        fontSize: 10,
+                        cellPadding: 2,
+                        lineColor: 200,
+                        lineWidth: 0.1
+                    },
+                    headStyles: {
+                        fillColor: [69, 123, 157], // Medium blue
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: {
+                        textColor: [50, 50, 50]
+                    },
+                    alternateRowStyles: {
+                        fillColor: [240, 240, 240] // Light gray for alternate rows
+                    },
+                    margin: { left: margin, right: margin },
+                    didDrawPage: (data) => {
+                        // Add header/footer to each page of the table
+                        addPageContent();
+                    }
+                });
+
+                yOffset = doc.autoTable.previous.finalY + lineHeight; // Get the final position of the table
+
+                // Cardio (if any)
                 if (dia.cardio) {
-                    if (yOffset + 2 * lineHeight > pageHeight - margin) {
+                    if (yOffset + 2 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                         doc.addPage();
                         yOffset = margin;
                         addPageContent();
@@ -1184,17 +2305,18 @@
                     }
                     doc.setFontSize(12);
                     doc.setTextColor(50, 50, 50);
-                    const cardioLines = doc.splitTextToSize(`Cardio: ${cleanTextForPdf(dia.cardio)}`, pageWidth - 2 * margin);
+                    const cardioLines = doc.splitTextToSize(`Cardio: ${dia.cardio}`, pageWidth - 2 * margin);
                     doc.text(cardioLines, margin, yOffset);
                     yOffset += lineHeight * cardioLines.length;
                 }
-                yOffset += lineHeight;
+                yOffset += lineHeight; // Space after cardio
 
-                yOffset += lineHeight * 2;
+                yOffset += lineHeight * 2; // Extra space between days
             });
 
+            // Add explanations for advanced techniques in PDF
             if (tecnicas.length > 0) {
-                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                if (yOffset + 4 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                     doc.addPage();
                     yOffset = margin;
                     addPageContent();
@@ -1209,7 +2331,21 @@
                 doc.setTextColor(50, 50, 50);
                 tecnicas.forEach(tech => {
                     if (tecnicasExplanations[tech]) {
-                        if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                        // Add bullet point and bold title
+                        doc.setFont('helvetica', 'bold');
+                        const titleLines = doc.splitTextToSize(`- ${tech}:`, pageWidth - 2 * margin - 10); // Indent for bullet
+                        doc.text(titleLines, margin + 5, yOffset);
+                        yOffset += lineHeight * titleLines.length;
+
+                        // Add normal content
+                        doc.setFont('helvetica', 'normal');
+                        const contentLines = doc.splitTextToSize(tecnicasExplanations[tech], pageWidth - 2 * margin - 15); // Further indent for content
+                        doc.text(contentLines, margin + 10, yOffset);
+                        yOffset += lineHeight * contentLines.length;
+                        yOffset += lineHeight * 0.5; // Small space between tips
+
+                        // Check if new page is needed for next tip
+                        if (yOffset + 4 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                             doc.addPage();
                             yOffset = margin;
                             addPageContent();
@@ -1221,38 +2357,29 @@
                             doc.setFontSize(10);
                             doc.setTextColor(50, 50, 50);
                         }
-
-                        doc.setFont('helvetica', 'bold');
-                        const titleLines = doc.splitTextToSize(`- ${tech}:`, pageWidth - 2 * margin - 10);
-                        doc.text(titleLines, margin + 5, yOffset);
-                        yOffset += lineHeight * titleLines.length;
-
-                        doc.setFont('helvetica', 'normal');
-                        const contentLines = doc.splitTextToSize(cleanTextForPdf(tecnicasExplanations[tech]), pageWidth - 2 * margin - 15);
-                        doc.text(contentLines, margin + 10, yOffset);
-                        yOffset += lineHeight * contentLines.length;
-                        yOffset += lineHeight * 0.5;
                     }
                 });
             }
 
+            // Call LLM for additional tips
             const prompt = `Com base em um usuário de nível ${nivel}, sexo ${sexo}, ${idade} anos de idade, pesando ${peso}kg e ${altura}cm de altura, com o objetivo de ${objetivo}, forneça 3 dicas adicionais concisas e acionáveis para sua jornada fitness. Foque *apenas* em alimentação, suplementação, descanso e hidratação. Responda em português. Formate cada dica como "1. **Título da Dica**: Conteúdo da dica."`;
 
-            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${"YOUR_GEMINI_API_KEY"}`, {
+            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${""}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
             })
             .then(response => response.json())
             .then(result => {
-                let llmTips = "1. **Alimentação Saudável**: Consuma proteínas magras, carboidratos complexos e gorduras saudáveis para sustentar a energia e a recuperação.\n2. **Hidratação Constante**: Beba bastante água ao longo do dia, especialmente antes, durante e depois dos treinos, para otimizar o desempenho e a saúde geral.\n3. **Sono Reparador**: Priorize 7-9 horas de sono de qualidade por noite, essencial para a recuperação muscular e hormonal.";
+                let llmTips = "1. **Alimentação**: Mantenha uma dieta equilibrada rica em proteínas, carboidratos complexos e gorduras saudáveis para otimizar a recuperação e o desempenho.\n2. **Suplementação**: Considere suplementos como whey protein ou creatina, se alinhados aos seus objetivos e com orientação profissional.\n3. **Descanso e Hidratação**: Priorize 7-9 horas de sono de qualidade por noite e beba bastante água ao longo do dia para apoiar a recuperação muscular e a saúde geral.";
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0 && result.candidates[0].content.parts[0].text) {
                     llmTips = result.candidates[0].content.parts[0].text;
                 }
                 
-                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                // Ensure there's space for tips on the current page or add a new one
+                if (yOffset + 4 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                     doc.addPage();
                     yOffset = margin;
                     addPageContent();
@@ -1267,17 +2394,34 @@
                 doc.setFontSize(10);
                 doc.setTextColor(50, 50, 50);
 
+                // Regex to parse tips: 1. **Title**: Content
                 const tipRegex = /(\d+\.\s*\*\*(.*?)\*\*:\s*)([\s\S]*?)(?=\n\d+\.|$)/g;
                 let match;
                 let currentTipYOffset = yOffset;
 
+                // Reset regex lastIndex before starting the loop
                 tipRegex.lastIndex = 0;
 
                 while ((match = tipRegex.exec(llmTips)) !== null) {
-                    const title = match[2];
-                    const content = match[3].trim();
+                    const fullPrefix = match[1]; // e.g., "1. **Recuperação**:"
+                    const title = match[2];     // e.g., "Recuperação"
+                    const content = match[3].trim(); // e.g., "Implemente semanas de..."
 
-                    if (currentTipYOffset + 4 * lineHeight > pageHeight - margin) {
+                    // Add bullet point and bold title
+                    doc.setFont('helvetica', 'bold');
+                    const titleLines = doc.splitTextToSize(`- ${title}:`, pageWidth - 2 * margin - 10); // Indent for bullet
+                    doc.text(titleLines, margin + 5, currentTipYOffset);
+                    currentTipYOffset += lineHeight * titleLines.length;
+
+                    // Add normal content
+                    doc.setFont('helvetica', 'normal');
+                    const contentLines = doc.splitTextToSize(content, pageWidth - 2 * margin - 15); // Further indent for content
+                    doc.text(contentLines, margin + 10, currentTipYOffset);
+                    currentTipYOffset += lineHeight * contentLines.length;
+                    currentTipYOffset += lineHeight * 0.5; // Small space between tips
+
+                    // Check if new page is needed for next tip
+                    if (currentTipYOffset + 4 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                         doc.addPage();
                         currentTipYOffset = margin;
                         addPageContent();
@@ -1289,25 +2433,15 @@
                         doc.setFontSize(10);
                         doc.setTextColor(50, 50, 50);
                     }
-
-                    doc.setFont('helvetica', 'bold');
-                    const titleLines = doc.splitTextToSize(`- ${cleanTextForPdf(title)}:`, pageWidth - 2 * margin - 10);
-                    doc.text(titleLines, margin + 5, currentTipYOffset);
-                    currentTipYOffset += lineHeight * titleLines.length;
-
-                    doc.setFont('helvetica', 'normal');
-                    const contentLines = doc.splitTextToSize(cleanTextForPdf(content), pageWidth - 2 * margin - 15);
-                    doc.text(contentLines, margin + 10, currentTipYOffset);
-                    currentTipYOffset += lineHeight * contentLines.length;
-                    currentTipYOffset += lineHeight * 0.5;
                 }
-                yOffset = currentTipYOffset;
+                yOffset = currentTipYOffset; // Update yOffset after tips
 
-                doc.save(`treino_${cleanTextForPdf(aluno).replace(/\s/g, '_').toLowerCase()}.pdf`);
+                doc.save(`treino_${aluno.replace(/\s/g, '_').toLowerCase()}.pdf`);
             })
             .catch(error => {
                 console.error("Error calling Gemini API for PDF tips:", error);
-                if (yOffset + 4 * lineHeight > pageHeight - margin) {
+                // Fallback if API call fails
+                if (yOffset + 4 * lineHeight > doc.internal.pageSize.getHeight() - margin) {
                     doc.addPage();
                     yOffset = margin;
                     addPageContent();
@@ -1319,7 +2453,7 @@
                 const lines = doc.splitTextToSize("Lembre-se de descansar adequadamente, manter a consistência nos treinos e sempre buscar a progressão de cargas ou intensidade.", pageWidth - 2 * margin);
                 doc.text(lines, margin, yOffset);
                 yOffset += lines.length * lineHeight;
-                doc.save(`treino_${cleanTextForPdf(aluno).replace(/\s/g, '_').toLowerCase()}.pdf`);
+                doc.save(`treino_${aluno.replace(/\s/g, '_').toLowerCase()}.pdf`);
             });
         }
 
@@ -1337,7 +2471,12 @@
         window.openAddExerciseToDayModal = openAddExerciseToDayModal;
         window.populateAddExSelect = populateAddExSelect;
         window.addNewExerciseToDay = addNewExerciseToDay;
-        window.updateAddExerciseGroupOptions = updateAddExerciseGroupOptions;
+        window.updateAddExerciseGroupOptions = updateAddExerciseGroupOptions; // Make this function globally accessible
+
+        // Adiciona um dia padrão ao carregar a página
+        window.onload = function() {
+            // No need to call loadUserData here, as onAuthStateChanged will handle it
+        };
     </script>
 </body>
 </html>
