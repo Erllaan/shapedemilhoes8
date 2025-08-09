@@ -188,6 +188,11 @@
             margin-top: 15px;
         }
 
+        .add-dia {
+            background-color: #58a6ff;
+            box-shadow: 0 5px 15px rgba(88, 166, 255, 0.3);
+        }
+
         .add-dia:hover {
             background-color: #3b82f6;
             transform: translateY(-2px);
@@ -337,7 +342,7 @@
             {"nome": "Pullover com halteres deitado no banco", "grupoMuscular": "Costas", "subGrupo": "Dorsal", "estilo": "Puxada Vertical", "tipo": "isolador", "dificuldade": ["Iniciante", "Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x15", "Intermediario": "4x12", "Avancado": "4x10-12"}, "descricao": "Deitado no banco, segure o halter com as duas mãos e o mova da cabeça em direção ao abdômen.", "sexo": ["Masculino", "Feminino"]},
             
             // PERNAS – Quadríceps + Adutores
-            {"nome": "Agachamento libre com barra nas costas", "grupoMuscular": "Quadríceps", "subGrupo": "Completo", "estilo": "Agachamento", "tipo": "composto", "dificuldade": ["Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x12", "Intermediario": "4x8-10", "Avancado": "5x6-8"}, "descricao": "Com a barra nas costas, desça o quadril até que as coxas fiquem paralelas ao chão.", "sexo": ["Masculino", "Feminino"]},
+            {"nome": "Agachamento livre com barra nas costas", "grupoMuscular": "Quadríceps", "subGrupo": "Completo", "estilo": "Agachamento", "tipo": "composto", "dificuldade": ["Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x12", "Intermediario": "4x8-10", "Avancado": "5x6-8"}, "descricao": "Com a barra nas costas, desça o quadril até que as coxas fiquem paralelas ao chão.", "sexo": ["Masculino", "Feminino"]},
             {"nome": "Agachamento frontal com barra", "grupoMuscular": "Quadríceps", "subGrupo": "Completo", "estilo": "Agachamento", "tipo": "composto", "dificuldade": ["Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x12", "Intermediario": "4x8-10", "Avancado": "5x6-8"}, "descricao": "Com a barra nos ombros, à frente, desça o quadril até que as coxas fiquem paralelas ao chão.", "sexo": ["Masculino", "Feminino"]},
             {"nome": "Agachamento com halteres ao lado do corpo", "grupoMuscular": "Quadríceps", "subGrupo": "Completo", "estilo": "Agachamento", "tipo": "composto", "dificuldade": ["Iniciante", "Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x12-15", "Intermediario": "4x10-12", "Avancado": "4x8-10"}, "descricao": "Segure os halteres ao lado do corpo e agache, mantendo o tronco reto.", "sexo": ["Masculino", "Feminino"]},
             {"nome": "Agachamento goblet com halter à frente", "grupoMuscular": "Quadríceps", "subGrupo": "Completo", "estilo": "Agachamento", "tipo": "composto", "dificuldade": ["Iniciante", "Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x15", "Intermediario": "4x12-15", "Avancado": "4x10-12"}, "descricao": "Segure um halter com as duas mãos à frente do peito e agache.", "sexo": ["Masculino", "Feminino"]},
@@ -445,6 +450,7 @@
             {"nome": "Elevação de pernas na barra fixa", "grupoMuscular": "Core", "estilo": "Flexão", "tipo": "isolador", "dificuldade": ["Avancado"], "sugerirRepeticoes": {"Iniciante": "3x10", "Intermediario": "4x12", "Avancado": "4x15+"}, "descricao": "Pendurado na barra, levante as pernas esticadas até 90 graus.", "sexo": ["Masculino", "Feminino"]},
             {"nome": "Prancha", "grupoMuscular": "Core", "estilo": "Isometria", "tipo": "composto", "dificuldade": ["Iniciante", "Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x30s", "Intermediario": "4x45s", "Avancado": "4x60s+"}, "descricao": "Apoie-se nos antebraços e pontas dos pés, mantendo o corpo reto como uma prancha.", "sexo": ["Masculino", "Feminino"]},
             {"nome": "Prancha lateral", "grupoMuscular": "Core", "estilo": "Isometria", "tipo": "composto", "dificuldade": ["Iniciante", "Intermediario", "Avancado"], "sugerirRepeticoes": {"Iniciante": "3x30s", "Intermediario": "4x45s", "Avancado": "4x60s+"}, "descricao": "Deite-se de lado, apoie o corpo no antebraço e mantenha o corpo reto, como uma prancha lateral.", "sexo": ["Masculino", "Feminino"]},
+
         ];
 
         const DICAS = [
@@ -572,7 +578,7 @@
                     <label>Técnicas Avançadas (selecione as desejadas, máx. 2):</label>
                     <div class="tecnicas-group">
                         ${tecnicasParaCheckboxes}
-                </div>
+                    </div>
                 </div>
             `;
             diasDeTreinoContainer.appendChild(diaTreinoDiv);
@@ -698,7 +704,7 @@
 
             // Aplica técnicas avançadas (opcional)
             if (tecnicasSelecionadas && tecnicasSelecionadas.length > 0) {
-                aplicarTecnicasAvancadas(exerciciosSelecionados, dificuldade, tecnicasSelecionadas, sexo);
+                aplicarTecnicasAvancadas(exerciciosSelecionados, dificuldade, tecnicasSelecionadas);
             }
 
             // Garante que o Core esteja no final
@@ -712,7 +718,7 @@
             return treinoPrincipal.concat(treinoCore); // Core sempre no final
         }
 
-        function aplicarTecnicasAvancadas(treino, dificuldade, tecnicasDesejadas, sexo) {
+        function aplicarTecnicasAvancadas(treino, dificuldade, tecnicasDesejadas) {
             let exerciciosComTecnicas = 0;
             const MAX_TECNICAS_POR_TREINO = 2;
             
