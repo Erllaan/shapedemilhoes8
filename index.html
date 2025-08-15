@@ -189,7 +189,7 @@
             color: #58a6ff;
         }
 
-        .add-dia, .btn-primary, .btn-secondary, .modal-footer button, .save-load-btn {
+        .add-dia, .btn-primary, .btn-secondary, .modal-footer button, .save-load-btn, .btn-menu {
             width: 100%;
             padding: 18px;
             font-size: 1.1em;
@@ -224,15 +224,23 @@
             box-shadow: 0 8px 20px rgba(56, 193, 114, 0.4);
         }
         
-        .btn-secondary {
+        .btn-secondary, .btn-menu {
             background-color: #555;
             box-shadow: none;
             margin-bottom: 20px;
         }
         
-        .btn-secondary:hover {
+        .btn-secondary:hover, .btn-menu:hover {
             background-color: #444;
             transform: translateY(-2px);
+        }
+
+        .btn-menu {
+            background-color: #3b82f6;
+        }
+
+        .btn-menu:hover {
+             background-color: #2563eb;
         }
         
         /* Estilo para os botões de Salvar e Carregar */
@@ -608,8 +616,35 @@
 <body>
     <div class="container">
         <h1>Your Trainer Partner</h1>
-        <form id="treinoForm">
+
+        <!-- TELA INICIAL -->
+        <div id="telaInicial">
+            <div class="form-section" style="text-align: center;">
+                <h2>Bem-vindo!</h2>
+                <p>O que gostaria de fazer?</p>
+                <button type="button" class="btn-primary" onclick="iniciarNovoTreino()">Criar Novo Treino</button>
+                <button type="button" class="btn-menu" onclick="mostrarTela('telaCarregar')">Carregar Treino Salvo</button>
+            </div>
+        </div>
+
+        <!-- TELA DE CARREGAR TREINO -->
+        <div id="telaCarregar" style="display: none;">
+             <div class="form-section">
+                <div id="gerenciamentoTreinos">
+                    <h3>Gerir Treinos Guardados</h3>
+                    <select id="treinosSalvosSelect" size="5"></select>
+                    <div class="save-load-buttons">
+                        <button type="button" class="save-load-btn load-btn" onclick="carregarTreinoSelecionado()">Carregar Treino</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="mostrarTela('telaInicial')">← Voltar ao Início</button>
+             </div>
+        </div>
+
+        <!-- FORMULÁRIO DE CRIAÇÃO -->
+        <form id="treinoForm" style="display: none;">
             <div id="formularioInicial">
+                 <button type="button" class="btn-secondary" style="width: auto; padding: 10px 20px; margin-bottom: 20px;" onclick="mostrarTela('telaInicial')">← Voltar ao Início</button>
                 <div class="form-section">
                     <h2>Informações do Aluno</h2>
                     <label for="nome_aluno">Nome do Aluno:</label>
@@ -670,21 +705,20 @@
             </div>
         </form>
         
-        <div id="treinoPreview">
+        <!-- TELA DE PRÉ-VISUALIZAÇÃO E EDIÇÃO -->
+        <div id="treinoPreview" style="display: none;">
             <div class="form-section">
                 <h2>Pré-visualização do Treino</h2>
                 <div id="treinosPreviewContainer"></div>
-                <div id="gerenciamentoTreinos" style="margin-top: 30px;">
-                    <h3>Gerir Treinos Guardados</h3>
+                 <div id="gerenciamentoTreinosPreview" style="margin-top: 30px;">
+                    <h3>Guardar Treino Atual</h3>
                     <label for="treinoNomeSalvo">Nome do Treino para Guardar:</label>
                     <input type="text" id="treinoNomeSalvo" placeholder="Ex: Treino de Força - Semana 1">
                     <div class="save-load-buttons">
                         <button type="button" class="save-load-btn save-btn" onclick="salvarTreino()">Guardar Treino</button>
-                        <button type="button" class="save-load-btn load-btn" onclick="carregarTreinoSelecionado()">Carregar Treino</button>
                     </div>
-                    <select id="treinosSalvosSelect" size="5"></select>
                 </div>
-                <button type="button" class="btn-secondary" onclick="voltarParaFormulario()">← Voltar e Editar Formulário</button>
+                <button type="button" class="btn-secondary" onclick="mostrarTela('telaInicial')">← Voltar ao Início</button>
                 <button type="button" class="btn-primary" onclick="gerarPDFFinal()">Gerar PDF Final</button>
             </div>
         </div>
@@ -1295,6 +1329,27 @@
         "nome": "Prancha lateral", "grupoMuscular": "Core", "grupoExercicio": "Prancha", "estilo": "Isometria", "tipo": "composto", "dificuldade": ["Iniciante", "Intermediario", "Avancado", "Em Casa"],
         "sugerirRepeticoes": { "Em Casa": "3x30s (cada lado)", "Iniciante": "3x20s (cada lado)", "Intermediario": "4x45s (cada lado)", "Avancado": "4x60s (cada lado)" },
         "descricao": "Apoie antebraço e lateral do pé, mantenha corpo reto. Abdômen contraído, quadril alinhado."
+    },
+    // --- NOVOS EXERCÍCIOS: TRAPÉZIO E ANTEBRAÇO ---
+    {
+        "nome": "Encolhimento com halteres", "grupoMuscular": "Trapézio", "grupoExercicio": "Encolhimento", "estilo": "Elevação", "tipo": "isolador", "dificuldade": ["Iniciante", "Intermediario", "Avancado"],
+        "sugerirRepeticoes": { "Iniciante": "3x15", "Intermediario": "4x12", "Avancado": "4x12" },
+        "descricao": "Segure um halter em cada mão ao lado do corpo. Eleve os ombros em direção às orelhas o máximo possível, sem usar os braços. Segure a contração e desça lentamente."
+    },
+    {
+        "nome": "Encolhimento com barra por trás", "grupoMuscular": "Trapézio", "grupoExercicio": "Encolhimento", "estilo": "Elevação", "tipo": "isolador", "dificuldade": ["Intermediario", "Avancado"],
+        "sugerirRepeticoes": { "Intermediario": "4x12", "Avancado": "4x10" },
+        "descricao": "Segure uma barra com pegada pronada atrás do corpo. Eleve os ombros em direção às orelhas. Mantenha os braços estendidos e foque na contração do trapézio."
+    },
+    {
+        "nome": "Rosca de punho com barra", "grupoMuscular": "Antebraço", "grupoExercicio": "Rosca de Punho", "estilo": "Flexão", "tipo": "isolador", "dificuldade": ["Iniciante", "Intermediario", "Avancado"],
+        "sugerirRepeticoes": { "Iniciante": "3x15", "Intermediario": "4x12-15", "Avancado": "4x15-20" },
+        "descricao": "Sentado, apoie os antebraços nas coxas com as palmas das mãos para cima, segurando uma barra. Deixe a barra rolar até a ponta dos dedos e depois flexione os punhos para cima."
+    },
+    {
+        "nome": "Rosca de punho invertida com barra", "grupoMuscular": "Antebraço", "grupoExercicio": "Rosca de Punho", "estilo": "Extensão", "tipo": "isolador", "dificuldade": ["Iniciante", "Intermediario", "Avancado"],
+        "sugerirRepeticoes": { "Iniciante": "3x15", "Intermediario": "4x12-15", "Avancado": "4x15-20" },
+        "descricao": "Sentado, apoie os antebraços nas coxas com as palmas das mãos para baixo, segurando uma barra. Estenda os punhos para cima, contraindo os músculos extensores do antebraço."
     }
 ];
 
@@ -1881,8 +1936,7 @@
             }
             
             renderizarPreview(appState.treinoSemanal);
-            document.getElementById('formularioInicial').style.display = 'none';
-            document.getElementById('treinoPreview').style.display = 'block';
+            mostrarTela('treinoPreview');
         }
 
         function renderizarPreview(treinoSemanal) {
@@ -2105,8 +2159,6 @@
         function voltarParaFormulario() {
             document.getElementById('formularioInicial').style.display = 'block';
             document.getElementById('treinoPreview').style.display = 'none';
-            appState.treinoSemanal = []; // Limpa os dados do preview
-            reordenarNomesDosTreinosFormulario(); // Garante que a contagem do formulário esteja correta
         }
 
         // Funções de arrastar e soltar existentes (mantidas para usuários de mouse)
@@ -2179,7 +2231,7 @@
             localStorage.setItem('treinosSalvos', JSON.stringify(appState.treinosSalvos));
             alert(`Treino "${treinoNomeSalvo}" guardado com sucesso!`);
 
-            renderizarTreinosSalvos();
+            carregarTreinosSalvos(); // Atualiza a lista de treinos salvos
         }
 
         function carregarTreinosSalvos() {
@@ -2207,10 +2259,9 @@
 
             const treinoCarregado = appState.treinosSalvos[nomeSelecionado];
             if (treinoCarregado) {
-                appState.treinoSemanal = treinoCarregado;
+                appState.treinoSemanal = JSON.parse(JSON.stringify(treinoCarregado)); // Deep copy para evitar mutação
                 renderizarPreview(appState.treinoSemanal);
-                document.getElementById('formularioInicial').style.display = 'none';
-                document.getElementById('treinoPreview').style.display = 'block';
+                mostrarTela('treinoPreview');
                 alert(`Treino "${nomeSelecionado}" carregado com sucesso!`);
             } else {
                 alert('Treino não encontrado.');
@@ -2422,13 +2473,35 @@
             
             doc.save(`treino_semanal_${dados_gerais.nome_aluno}.pdf`);
         }
+        
+        // --- NOVAS FUNÇÕES DE CONTROLO DE TELA ---
+        function mostrarTela(idTela) {
+            document.getElementById('telaInicial').style.display = 'none';
+            document.getElementById('treinoForm').style.display = 'none';
+            document.getElementById('treinoPreview').style.display = 'none';
+            document.getElementById('telaCarregar').style.display = 'none';
+
+            document.getElementById(idTela).style.display = 'block';
+        }
+
+        function iniciarNovoTreino() {
+            // Limpa o formulário antes de o mostrar
+            document.getElementById('treinoForm').reset();
+            const diasContainer = document.getElementById('diasDeTreino');
+            diasContainer.innerHTML = '<h2>Planilha de Treino</h2>';
+            diaTreinoCount = 0;
+            adicionarDiaTreino();
+            mostrarTela('treinoForm');
+        }
+
 
         window.onload = function() {
-            adicionarDiaTreino();
             const form = document.getElementById('treinoForm');
             form.addEventListener('submit', function(e) { e.preventDefault(); });
-            // Carrega os treinos salvos ao iniciar a página
+            // Carrega os treinos salvos para a lista
             carregarTreinosSalvos();
+            // Mostra a tela inicial
+            mostrarTela('telaInicial');
         };
     </script>
 </body>
